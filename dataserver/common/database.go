@@ -3,6 +3,7 @@ package common
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"time"
 )
@@ -28,8 +29,8 @@ func getURL() string {
 */
 func GetDBConnection() (*sql.DB, error) {
 	driver := GetConfig("db.driver")
-
 	url := getURL()
+
 	var err error
 	db, err := sql.Open(driver, url)
 	if err != nil {

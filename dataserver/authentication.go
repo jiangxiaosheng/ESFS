@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"path"
@@ -39,7 +40,7 @@ func (s *dataServer) Login(ctx context.Context, req *protos.LoginRequest) (*prot
 	exists := false
 	if res.Next() {
 		exists = true
-		res.Scan(&passwordHash, salt)
+		res.Scan(&passwordHash, &salt)
 	}
 	if exists == false {
 		return &protos.LoginResponse{

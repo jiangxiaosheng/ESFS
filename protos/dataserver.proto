@@ -42,6 +42,7 @@ message RegisterResponse {
 
 service FileHandle {
   rpc listFiles(ListFilesRequest) returns (ListFilesResponse) {}
+  rpc upload()
 }
 
 message ListFilesRequest {
@@ -50,9 +51,9 @@ message ListFilesRequest {
 
 message ListFilesResponse {
   bool ok = 1;
-  enum errorMessage {
-    OK = 0;
-    SERVER_ERROR = 1;
-  }
-  repeated string fileInfo = 3;
+  repeated string fileInfo = 2;
+}
+
+message UploadRequest {
+  string
 }

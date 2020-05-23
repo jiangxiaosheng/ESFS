@@ -17,7 +17,6 @@ func main() {
 	port := 8927
 	host := "0.0.0.0"
 	addr := fmt.Sprintf("%s:%d", host, port)
-	fmt.Println(addr)
 
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {

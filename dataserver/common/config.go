@@ -18,7 +18,7 @@ func loadConfigFromYaml(c *config) error {
 	c.SetConfigName("config")
 	c.AddConfigPath("../")
 	c.AddConfigPath("./")
-	c.AddConfigPath("../dataserver")
+	c.AddConfigPath("dataserver/common")
 	if err := c.ReadInConfig(); err != nil {
 		return err
 	}

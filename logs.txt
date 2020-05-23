@@ -1,0 +1,8 @@
+TRACE: 2020/05/23 19:53:46.100107 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:26: {enabledCB.Checked <nil>}
+TRACE: 2020/05/23 19:54:22.885156 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:92: <nil>
+TRACE: 2020/05/23 19:55:15.057069 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:92: 
+TRACE: 2020/05/23 19:55:50.046770 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:26: {enabledCB.Checked <nil>}
+TRACE: 2020/05/23 19:56:52.636920 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:26: {enabledCB.Checked <nil>}
+TRACE: 2020/05/23 19:56:57.693449 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:92: 
+TRACE: 2020/05/23 19:58:22.740263 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:92: 
+TRACE: 2020/05/23 19:58:23.772275 E:/GoLand/GoLand 2019.3.3/codes/src/ESFS2.0/GUI/login.go:26: {enabledCB.Checked <nil>}

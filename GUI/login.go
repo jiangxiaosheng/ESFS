@@ -1,32 +1,18 @@
-package main
+package GUI
 
 import (
 	"fmt"
 	"log"
-	"os"
 )
 import (
+	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
 
-func init() {
-	logFile, err := os.OpenFile("logs.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	log.SetOutput(logFile)
-	log.SetPrefix("TRACE: ")
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
-}
+var _usernameEdit, _passwordEdit *walk.LineEdit
+var _rememberRadioButton *walk.RadioButton
 
-func main() {
-	if _, err := LoginWindow.Run(); err != nil {
-		log.Fatal(err)
-	}
-	log.Fatal(Bind("enabledCB.Checked"))
-}
-
-var LoginWindow = MainWindow{
+var loginWindow = MainWindow{
 	Title:    "Login",
 	MinSize:  Size{270, 290},
 	Layout:   VBox{},
@@ -45,52 +31,55 @@ var widget = []Widget{
 		Children: []Widget{
 			passwordLabel,
 			passwordEdit,
-			RadioButtonRemember,
+			rememberPushButton,
 		},
 		MaxSize: Size{50, 20},
 	},
-	PushButtonOK,
-	PushButtonRegister,
+	okPushButton,
+	registerPushButton,
 }
+
 var usernameLabel = Label{
 	Text: "用户名:",
 }
+
 var passwordLabel = Label{
 	Text: "密码:",
 }
 
-var usernameEdit = LineEdit{}
-
-var passwordEdit = LineEdit{}
-
-var RadioButtonRemember = RadioButton{
-	Text: "记住用户名及密码",
+var usernameEdit = LineEdit{
+	AssignTo: &_usernameEdit,
 }
 
-var PushButtonOK = PushButton{
+var passwordEdit = LineEdit{
+	AssignTo: &_passwordEdit,
+}
+
+var rememberPushButton = RadioButton{
+	AssignTo: &_rememberRadioButton,
+	Text:     "记住用户名及密码",
+}
+
+var okPushButton = PushButton{
 	Text:      "登录",
 	OnClicked: okClicked,
 }
-
-var PushButtonRegister = PushButton{
+var registerPushButton = PushButton{
 	Text:      "注册",
 	OnClicked: registerClicked,
 }
 
 func okClicked() {
-	//client, conn, err := client.GetAuthenticationClient()
-	//if err != nil {
-	//	log.Printf(err.Error())
-	//	return
-	//}
-	//defer conn.Close()
-	//
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	//defer cancel()
-	//
-	//client.Login()
-
+	fmt.Println(_usernameEdit.Text())
 }
+
 func registerClicked() {
 
+}
+
+func main() {
+	if _, err := loginWindow.Run(); err != nil {
+		log.Fatal(err)
+	}
+	log.Fatal(Bind("enabledCB.Checked"))
 }
