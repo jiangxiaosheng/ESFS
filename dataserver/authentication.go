@@ -22,7 +22,6 @@ func (s *dataServer) Login(ctx context.Context, req *protos.LoginRequest) (*prot
 	if err != nil {
 		log.Printf("连接数据库失败 %v", err.Error())
 		return &protos.LoginResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
 	}
 
@@ -32,7 +31,6 @@ func (s *dataServer) Login(ctx context.Context, req *protos.LoginRequest) (*prot
 	if err != nil {
 		log.Printf("查询数据库失败 %v", err.Error())
 		return &protos.LoginResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
 	}
 
@@ -44,7 +42,6 @@ func (s *dataServer) Login(ctx context.Context, req *protos.LoginRequest) (*prot
 	}
 	if exists == false {
 		return &protos.LoginResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_USER_NOT_EXISTS}, nil
 	}
 
@@ -52,13 +49,11 @@ func (s *dataServer) Login(ctx context.Context, req *protos.LoginRequest) (*prot
 	user_passwordHash := utils.HashWithSalt(req.Password, salt)
 	if user_passwordHash == passwordHash {
 		return &protos.LoginResponse{
-			Ok:           true,
 			ErrorMessage: protos.ErrorMessage_OK,
 		}, nil
 	}
 
 	return &protos.LoginResponse{
-		Ok:           false,
 		ErrorMessage: protos.ErrorMessage_PASSWORD_WRONG,
 	}, nil
 }
@@ -72,7 +67,6 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	if err != nil {
 		log.Printf("连接数据库失败 %v", err.Error())
 		return &protos.RegisterResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
 	}
 
@@ -82,13 +76,11 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	if err != nil {
 		log.Printf("查询数据库失败 %v", err.Error())
 		return &protos.RegisterResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
 	}
 
 	if res.Next() { //如果已存在，则返回失败
 		return &protos.RegisterResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_USER_ALREADY_EXISTS,
 		}, nil
 	}
@@ -105,7 +97,6 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	if err != nil {
 		log.Printf("数据库执行插入事务失败 %v", err.Error())
 		return &protos.RegisterResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
 		}, nil
 	}
@@ -115,13 +106,11 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	if err != nil {
 		log.Printf("创建目录失败 %v", err.Error())
 		return &protos.RegisterResponse{
-			Ok:           false,
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
 		}, err
 	}
 
 	return &protos.RegisterResponse{
-		Ok:           true,
 		ErrorMessage: protos.ErrorMessage_OK,
 	}, nil
 }

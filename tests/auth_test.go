@@ -28,7 +28,7 @@ func TestRegister(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(response.Ok, response.ErrorMessage)
+	fmt.Println(response.ErrorMessage)
 }
 
 func TestLogin(t *testing.T) {
@@ -49,5 +49,5 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(response.Ok, response.ErrorMessage)
+	fmt.Println(response.ErrorMessage)
 }

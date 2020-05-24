@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	_ "fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -32,20 +32,38 @@ func fileSocketServer() {
 			continue
 		}
 
-		msg := &message.FileSocketMessage{}
-		buf := make([]byte, 2048)
-		n, err := conn.Read(buf)
-		err = json.Unmarshal(buf[:n], msg)
-		if err != nil {
-			fmt.Printf("反序列化失败 %v", err.Error())
-			continue
-		}
+		go func(conn net.Conn) {
+			msg := &message.FileSocketMessage{}
+			buffer := make([]byte, 2048)
+			n, err := conn.Read(buffer)
+			err = json.Unmarshal(buffer[:n], msg)
+			if err != nil {
+				log.Printf("反序列化失败 %v", err.Error())
+				return
+			}
 
-		fmt.Println(msg.UserName, msg.FileName, msg.Type)
+			if msg.Type == message.FILE_UPLOAD {
+				file, err := os.OpenFile(path.Join(common.BaseDir, "dataserver", "data", msg.UserName, msg.FileName), os.O_RDWR, 0)
+				if err != nil {
+					log.Printf("打开文件失败 %v", err.Error())
+					return
+				}
 
-		//go func() {
-		//
-		//}()
+				for {
+					n, err := conn.Read(buffer)
+					if err == io.EOF {
+						break
+					}
+					_, err = file.Write(buffer[:n])
+					if err != nil {
+						log.Printf("写入文件失败 %v", err.Error())
+						break
+					}
+				}
+				file.Close()
+			}
+		}(conn)
+
 	}
 
 }
@@ -85,5 +103,6 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 }
 
 func (s *dataServer) ListFiles(ctx context.Context, req *protos.ListFilesRequest) (*protos.ListFilesResponse, error) {
-	return nil, nil
+	fileDir := path.Join(common.BaseDir, "dataserver", "data", req.Username)
+
 }

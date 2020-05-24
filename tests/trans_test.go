@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -47,4 +49,50 @@ func TestFileClient(t *testing.T) {
 	if response != nil {
 		fmt.Println(response.Ok, response.ErrorMessage)
 	}
+}
+
+func TestFileSocket(t *testing.T) {
+	addr := "0.0.0.0:8959"
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	msg := message.FileSocketMessage{
+		UserName: "memeshe",
+		FileName: "8.jpg",
+		Type:     message.FILE_UPLOAD,
+	}
+
+	serializedData, err := json.Marshal(msg)
+	_, err = conn.Write(serializedData)
+	if err != nil {
+		fmt.Printf("socket写入数据失败 %v", err.Error())
+		return
+	}
+
+	//buffer := make([]byte, 2048)
+	//n, err := conn.Read(buffer)
+	//var status message.TransStatus
+	//err = json.Unmarshal(buffer[:n], &status)
+	//if err != nil {
+	//	log.Printf("反序列化失败 %v", err.Error())
+	//	return
+	//}
+
+	file, err := os.Open("8.jpg")
+	buffer := make([]byte, 2048)
+	for {
+		n, err := file.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		_, err = conn.Write(buffer[:n])
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+	}
+
 }

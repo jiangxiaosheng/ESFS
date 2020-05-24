@@ -24,7 +24,6 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  bool ok = 1;  //登录是否成功
   ErrorMessage errorMessage = 2;
 }
 
@@ -36,7 +35,6 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
-  bool ok = 1;
   ErrorMessage errorMessage = 2;
 }
 

@@ -7,17 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 )
-
-const (
-	basedir = "E:\\GoLand\\GoLand 2019.3.3\\codes\\src\\ESFS"
-)
-
-func GetDir(dir string) string {
-	return path.Join(basedir, dir)
-}
 
 /**
 @author: yyx

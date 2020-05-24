@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type OpType int16
+type OpType int8
 
 const (
 	FILE_UPLOAD   OpType = 1
