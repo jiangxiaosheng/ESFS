@@ -2,7 +2,7 @@ package tests
 
 import (
 	"ESFS2.0/client"
-	"ESFS2.0/protos"
+	"ESFS2.0/message/protos"
 	"context"
 	"fmt"
 	"testing"
@@ -20,7 +20,7 @@ func TestRegister(t *testing.T) {
 	defer cancel()
 
 	request := &protos.RegisterRequest{
-		Username:         "memeshe2",
+		Username:         "memeshe",
 		Password:         "111",
 		DefaultSecondKey: "000",
 	}
@@ -50,5 +50,4 @@ func TestLogin(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(response.Ok, response.ErrorMessage)
-	GUI
 }

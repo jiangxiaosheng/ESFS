@@ -10,7 +10,7 @@ service Authentication {
   rpc register(RegisterRequest) returns (RegisterResponse) {}
 }
 
-enum AuthErrorMessage {
+enum ErrorMessage {
   OK = 0;
   PASSWORD_WRONG = 1;
   USER_NOT_EXISTS = 2;
@@ -25,7 +25,7 @@ message LoginRequest {
 
 message LoginResponse {
   bool ok = 1;  //登录是否成功
-  AuthErrorMessage errorMessage = 2;
+  ErrorMessage errorMessage = 2;
 }
 
 //TODO:还没有加入检查证书的功能
@@ -37,12 +37,12 @@ message RegisterRequest {
 
 message RegisterResponse {
   bool ok = 1;
-  AuthErrorMessage errorMessage = 2;
+  ErrorMessage errorMessage = 2;
 }
 
 service FileHandle {
   rpc listFiles(ListFilesRequest) returns (ListFilesResponse) {}
-  rpc upload()
+  rpc uploadPrepare(UploadPrepareRequest) returns (UploadPrepareResponse) {}
 }
 
 message ListFilesRequest {
@@ -54,6 +54,12 @@ message ListFilesResponse {
   repeated string fileInfo = 2;
 }
 
-message UploadRequest {
-  string
+message UploadPrepareRequest {
+  string username = 1;
+  bytes fileInfo = 2;
+}
+
+message UploadPrepareResponse {
+  bool ok = 1;
+  ErrorMessage errorMessage = 2;
 }
