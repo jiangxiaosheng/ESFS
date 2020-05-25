@@ -11,6 +11,23 @@ import (
 )
 
 /**
+@author yyx
+TODO: path为需要压缩的路径地址（可能是文件或者目录，需要自己判断）,dest为输出路径，返回相应的压缩文件和错误
+*/
+func CompressToFile(path, dest string) (*os.File, error) {
+	return nil, nil
+}
+
+/**
+@author yyx
+TODO: 和上面的函数类似，只是压缩到一个字节数组里面，只要实现这个函数，上面的函数就可以调用这个函数写入到文件就行
+TODO: 下面有一些函数可以参考，注意命名规范
+*/
+func CompressToBytes(path string) ([]byte, error) {
+	return nil, nil
+}
+
+/**
 @author: yyx
 */
 func rev(base string, fileArr *[]*os.File) {
@@ -112,8 +129,6 @@ func WriteFile(filePth string, data []byte) error {
 }
 
 //func EncryptFile(file *os.File, key )
-
-//////////////////下面代码都是网上扒的，还没改好
 
 //压缩文件
 //files 文件数组，可以是不同dir下的文件或者文件夹
