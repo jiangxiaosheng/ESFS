@@ -72,15 +72,6 @@ func TestFileSocket(t *testing.T) {
 		return
 	}
 
-	//buffer := make([]byte, 2048)
-	//n, err := conn.Read(buffer)
-	//var status message.TransStatus
-	//err = json.Unmarshal(buffer[:n], &status)
-	//if err != nil {
-	//	log.Printf("反序列化失败 %v", err.Error())
-	//	return
-	//}
-
 	file, err := os.Open("8.jpg")
 	buffer := make([]byte, 2048)
 	for {
@@ -94,5 +85,29 @@ func TestFileSocket(t *testing.T) {
 			break
 		}
 	}
+}
 
+func TestListFiles(t *testing.T) {
+	c, conn, err := client.GetFileHandleClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	msg := &protos.ListFilesRequest{
+		Username: "memeshe",
+	}
+
+	response, err := c.ListFiles(ctx, msg)
+	info := &message.FileInfo{}
+	if response != nil {
+		filesArray := response.FileInfo
+		for _, data := range filesArray {
+			err = json.Unmarshal(data, info)
+			fmt.Println(info.Name)
+		}
+	}
 }

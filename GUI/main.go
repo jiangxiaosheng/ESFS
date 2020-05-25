@@ -20,7 +20,7 @@ var CurrentUser string
 
 func init() {
 	HasLogin = true //*********是否已登录********
-	CurrentUser = ""
+	CurrentUser = "memeshe"
 }
 
 func main() {

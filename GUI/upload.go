@@ -1,12 +1,16 @@
 package main
 
 import (
+	"ESFS2.0/message"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/spf13/viper"
 	"io"
+	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,7 +32,7 @@ func OpenWindow() {
 	if err := (MainWindow{
 		AssignTo: &mw.MainWindow,
 		Title:    "文件上传",
-		//Icon:     "test.ico", //图标文件路径
+
 		MinSize: Size{300, 400},
 		Layout:  VBox{},
 		Children: []Widget{
@@ -47,7 +51,7 @@ func OpenWindow() {
 					PushButton{
 						Text: "上传",
 						OnClicked: func() {
-							fmt.Println(mw.selectedfile.Text())
+							upload(mw)
 						},
 					},
 				},
@@ -71,6 +75,56 @@ func OpenWindow() {
 		mw.selectedfile.SetText(strings.Join(files, "\r\n"))
 	})
 	mw.Run()
+}
+
+func upload(mw *MyMainWindow) {
+	path := mw.selectedfile.Text()
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf("打开文件失败 %v", err.Error())
+		ShowMsgBox("提示", "打开文件失败")
+		return
+	}
+
+	addr := "0.0.0.0:8959"
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	msg := message.FileSocketMessage{
+		UserName: CurrentUser,
+		FileName: filepath.Base(file.Name()),
+		Type:     message.FILE_UPLOAD,
+	}
+
+	serializedData, err := json.Marshal(msg)
+	_, err = conn.Write(serializedData)
+	if err != nil {
+		fmt.Printf("socket写入数据失败 %v", err.Error())
+		return
+	}
+
+	buffer := make([]byte, 2048)
+	for {
+		n, err := file.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		_, err = conn.Write(buffer[:n])
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+	}
+
+	ShowMsgBox("提示", "上传成功")
+
+	//异步上传
+	go func() {
+
+	}()
 }
 
 func (mw *MyMainWindow) selectFile() {

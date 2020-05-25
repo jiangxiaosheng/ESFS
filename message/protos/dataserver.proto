@@ -49,7 +49,7 @@ message ListFilesRequest {
 
 message ListFilesResponse {
   bool ok = 1;
-  repeated string fileInfo = 2;
+  repeated bytes fileInfo = 2;
 }
 
 message UploadPrepareRequest {

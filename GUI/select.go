@@ -1,7 +1,11 @@
 package main
 
 import (
+	"ESFS2.0/client"
 	"ESFS2.0/message"
+	"ESFS2.0/message/protos"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -94,39 +98,38 @@ func (m *FileModel) Swap(i, j int) {
 }
 
 func NewFileModel() *FileModel {
+	c, conn, err := client.GetFileHandleClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	msg := &protos.ListFilesRequest{
+		Username: CurrentUser,
+	}
+
+	response, err := c.ListFiles(ctx, msg)
+
 	m := new(FileModel)
-	m.items = make([]*FileRecord, 2)
+	m.items = []*FileRecord{}
 
-	m.items[0] = &FileRecord{
-		FileInfo: message.FileInfo{
-			Name:    "lalala",
-			Mode:    0,
-			Size:    0,
-			ModTime: time.Time{},
-		},
+	if response != nil {
+		filesArray := response.FileInfo
+		fmt.Println(len(filesArray))
+		for _, data := range filesArray {
+			info := &message.FileInfo{}
+			err = json.Unmarshal(data, info)
+			m.items = append(m.items, &FileRecord{
+				FileInfo: *info,
+				checked:  false,
+			})
+			fmt.Println(info.Name)
+		}
 	}
 
-	m.items[1] = &FileRecord{
-		FileInfo: message.FileInfo{
-			Name:    "hahaha",
-			Mode:    0,
-			Size:    0,
-			ModTime: time.Time{},
-		},
-	}
-	//******************展示示例：******************
-	//m.items[0] = &FileRecord{
-	//	Index:    0,
-	//	FileInfo: message.FileInfo{
-	//		Name:    "",
-	//		Size:    0,
-	//		ModTime: time.Time{},
-	//	},
-	//
-	//}
-	//
-
-	//********************************************
 	return m
 }
 
@@ -137,7 +140,14 @@ type FileMainWindow struct {
 }
 
 func GetSelectPage() []Widget {
-	mw := &FileMainWindow{model: NewFileModel()}
+	mw := &FileMainWindow{}
+
+	//异步渲染
+	//go func() {
+	//	mw.model = NewFileModel()
+	//}()
+	mw.model = NewFileModel()
+
 	var a []Widget
 	a = []Widget{
 		Composite{
@@ -196,7 +206,9 @@ func GetSelectPage() []Widget {
 					Columns: []TableViewColumn{
 						{Title: "名称"},
 						{Title: "大小"},
-						{Title: "日期"},
+						{Title: "日期", FormatFunc: func(t interface{}) string {
+							return fmt.Sprintf(t.(time.Time).Format("2006-01-02 15:04:05"))
+						}},
 					},
 					Model: mw.model,
 					OnCurrentIndexChanged: func() {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -43,7 +44,7 @@ func fileSocketServer() {
 			}
 
 			if msg.Type == message.FILE_UPLOAD {
-				file, err := os.OpenFile(path.Join(common.BaseDir, "dataserver", "data", msg.UserName, msg.FileName), os.O_RDWR, 0)
+				file, err := os.Create(path.Join(common.BaseDir, "dataserver", "data", msg.UserName, msg.FileName))
 				if err != nil {
 					log.Printf("打开文件失败 %v", err.Error())
 					return
@@ -104,5 +105,34 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 
 func (s *dataServer) ListFiles(ctx context.Context, req *protos.ListFilesRequest) (*protos.ListFilesResponse, error) {
 	fileDir := path.Join(common.BaseDir, "dataserver", "data", req.Username)
+	files, err := ioutil.ReadDir(fileDir)
+	if err != nil {
+		log.Printf("读目录失败 %v", err.Error())
+		return &protos.ListFilesResponse{
+			Ok:       false,
+			FileInfo: nil,
+		}, err
+	}
 
+	var filesArray [][]byte
+	for _, f := range files {
+		tmp := &message.FileInfo{
+			Name:    f.Name(),
+			Mode:    f.Mode(),
+			Size:    f.Size(),
+			ModTime: f.ModTime(),
+		}
+		serializedData, err := json.Marshal(tmp)
+		if err != nil {
+			log.Printf("反序列化文件信息失败 %v", err.Error())
+			continue
+		}
+
+		filesArray = append(filesArray, serializedData)
+	}
+
+	return &protos.ListFilesResponse{
+		Ok:       true,
+		FileInfo: filesArray,
+	}, nil
 }
