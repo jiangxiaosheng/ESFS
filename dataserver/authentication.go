@@ -6,6 +6,7 @@ import (
 	"ESFS2.0/utils"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
@@ -113,4 +114,31 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	return &protos.RegisterResponse{
 		ErrorMessage: protos.ErrorMessage_OK,
 	}, nil
+}
+
+/**
+@author js
+获取指定用户的默认二级密码
+*/
+func getDefaultSecondKey(username string) (string, error) {
+	db, err := common.GetDBConnection()
+	if err != nil {
+		log.Printf("获取数据库连接失败 %v", err.Error())
+		return "", err
+	}
+
+	sql := fmt.Sprintf("select defaultSecondKey from users where username='%s'", username)
+	res, err := common.DoQuery(sql, db)
+	if err != nil {
+		log.Printf("查询数据库失败 %v", err.Error())
+		return "", err
+	}
+
+	if res.Next() {
+		var secondKey string
+		res.Scan(&secondKey)
+		return secondKey, nil
+	} else {
+		return "", errors.New("用户不存在")
+	}
 }

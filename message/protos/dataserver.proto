@@ -16,6 +16,7 @@ enum ErrorMessage {
   USER_NOT_EXISTS = 2;
   USER_ALREADY_EXISTS = 3;
   SERVER_ERROR = 4;
+  NO_CERTIFICATE = 5;
 }
 
 message LoginRequest {
@@ -58,6 +59,6 @@ message UploadPrepareRequest {
 }
 
 message UploadPrepareResponse {
-  bool ok = 1;
-  ErrorMessage errorMessage = 2;
+  ErrorMessage errorMessage = 1;
+  string defaultSecondKey = 2;
 }

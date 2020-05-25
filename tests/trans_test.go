@@ -47,7 +47,7 @@ func TestFileClient(t *testing.T) {
 
 	response, err := c.UploadPrepare(ctx, request)
 	if response != nil {
-		fmt.Println(response.Ok, response.ErrorMessage)
+		fmt.Println(response.ErrorMessage)
 	}
 }
 

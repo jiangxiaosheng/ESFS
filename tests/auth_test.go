@@ -51,3 +51,12 @@ func TestLogin(t *testing.T) {
 	}
 	fmt.Println(response.ErrorMessage)
 }
+
+func TestGetSecondKey(t *testing.T) {
+	//key, err := dataserver.GetDefaultSecondKey("memeshe")
+	//if err != nil {
+	//	fmt.Println(err)
+	//} else {
+	//	fmt.Println(key)
+	//}
+}

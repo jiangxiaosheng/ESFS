@@ -16,7 +16,7 @@ func loadConfigFromYaml(c *config) error {
 	c.Viper = viper.New()
 	c.SetConfigType("yaml")
 	c.SetConfigName("config")
-	c.AddConfigPath("../")
+	c.AddConfigPath("../dataserver/common")
 	c.AddConfigPath("./")
 	c.AddConfigPath("dataserver/common")
 	if err := c.ReadInConfig(); err != nil {

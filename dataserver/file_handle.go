@@ -79,8 +79,8 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 	if err != nil {
 		log.Printf("反序列化失败 %v", err.Error())
 		return &protos.UploadPrepareResponse{
-			Ok:           false,
-			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
+			DefaultSecondKey: nil,
 		}, err
 	}
 
@@ -90,16 +90,25 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 	if err != nil {
 		log.Printf("创建文件失败 %v", err.Error())
 		return &protos.UploadPrepareResponse{
-			Ok:           false,
-			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
+			DefaultSecondKey: nil,
 		}, err
 	}
 	defer file.Close()
 
-	fmt.Println(fileInfo.Name, fileInfo.Size, fileInfo.Mode, fileInfo.ModTime)
+	//从数据库中读出用户的默认二级密码
+	secondKey, err := getDefaultSecondKey(req.Username)
+	if err != nil {
+		log.Printf("获取二级密码失败 %v", err.Error())
+		return &protos.UploadPrepareResponse{
+			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
+			DefaultSecondKey: nil,
+		}, err
+	}
+
 	return &protos.UploadPrepareResponse{
-		Ok:           true,
-		ErrorMessage: protos.ErrorMessage_OK,
+		ErrorMessage:     protos.ErrorMessage_OK,
+		DefaultSecondKey: secondKey,
 	}, nil
 }
 

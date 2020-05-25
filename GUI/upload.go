@@ -1,8 +1,10 @@
 package main
 
 import (
+	"ESFS2.0/client"
 	"ESFS2.0/message"
-	"crypto/md5"
+	"ESFS2.0/message/protos"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
@@ -12,23 +14,23 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type MyMainWindow struct {
 	*walk.MainWindow
-	model        *MessageModel
 	selectedfile *walk.LineEdit
 	message      *walk.ListBox
 	wv           *walk.WebView
 	textEdit     *walk.TextEdit
 }
 
-func OpenWindow() {
-	mw := &MyMainWindow{model: NewMessageModel()}
+var _useRadioButton, _notuseRadioButton *walk.RadioButton
 
+func OpenWindow() {
+	mw := &MyMainWindow{}
 	if err := (MainWindow{
 		AssignTo: &mw.MainWindow,
 		Title:    "文件上传",
@@ -56,12 +58,32 @@ func OpenWindow() {
 					},
 				},
 			},
-			ListBox{ //记录框
-				AssignTo:              &mw.message,
-				OnCurrentIndexChanged: mw.lb_CurrentIndexChanged, //单击
-				OnItemActivated:       mw.lb_ItemActivated,       //双击
+			GroupBox{
+				MaxSize: Size{500, 500},
+				Layout:  HBox{},
+				Children: []Widget{
+					RadioButton{
+						AssignTo: &_useRadioButton,
+						Text:     "使用默认二级密码",
+						OnClicked: func() {
+							mw.selectedfile.SetReadOnly(true)
+						},
+					},
+					RadioButton{
+						AssignTo: &_notuseRadioButton,
+						Text:     "使用新二级密码",
+						OnClicked: func() {
+							mw.selectedfile.SetReadOnly(false)
+						},
+					},
+					LineEdit{
+						AssignTo: &mw.selectedfile, //新的二级密码
+						ReadOnly: true,
+					},
+				},
 			},
 			TextEdit{
+				//MaxSize: Size{300, 200},
 				AssignTo: &mw.textEdit,
 				ReadOnly: true,
 				Text:     "Drop files here, from windows explorer...",
@@ -72,7 +94,6 @@ func OpenWindow() {
 	}
 	mw.textEdit.DropFiles().Attach(func(files []string) {
 		mw.textEdit.SetText(strings.Join(files, "\r\n"))
-		mw.selectedfile.SetText(strings.Join(files, "\r\n"))
 	})
 	mw.Run()
 }
@@ -86,44 +107,87 @@ func upload(mw *MyMainWindow) {
 		return
 	}
 
-	addr := "0.0.0.0:8959"
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer conn.Close()
-
-	msg := message.FileSocketMessage{
-		UserName: CurrentUser,
-		FileName: filepath.Base(file.Name()),
-		Type:     message.FILE_UPLOAD,
-	}
-
-	serializedData, err := json.Marshal(msg)
-	_, err = conn.Write(serializedData)
-	if err != nil {
-		fmt.Printf("socket写入数据失败 %v", err.Error())
-		return
-	}
-
-	buffer := make([]byte, 2048)
-	for {
-		n, err := file.Read(buffer)
-		if err == io.EOF {
-			break
-		}
-		_, err = conn.Write(buffer[:n])
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-	}
-
-	ShowMsgBox("提示", "上传成功")
-
 	//异步上传
 	go func() {
+		//通过grpc向dataserver发送准备传输请求，这一步获得用户的默认二级密码
+		c, grpcConn, err := client.GetFileHandleClient()
+		if err != nil {
+			log.Printf("建立grpc客户端失败 %v", err.Error())
+			ShowMsgBox("提示", "服务器错误")
+			return
+		}
+		defer grpcConn.Close()
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		fileInfo, err := file.Stat()
+		if err != nil {
+			log.Printf("读取文件信息失败 %v", err.Error())
+			ShowMsgBox("提示", "读取文件信息失败")
+			return
+		}
+
+		buf, err := json.Marshal(fileInfo)
+		if err != nil {
+			log.Printf("序列化文件信息失败 %v", err.Error())
+			ShowMsgBox("提示", "读取文件信息失败")
+			return
+		}
+
+		prepareRequest := &protos.UploadPrepareRequest{
+			Username: CurrentUser,
+			FileInfo: buf,
+		}
+		response, err := c.UploadPrepare(ctx, prepareRequest)
+		if err != nil {
+			log.Printf("服务器错误 %v", err.Error())
+			ShowMsgBox("提示", "服务器错误")
+			return
+		}
+
+		switch response.ErrorMessage {
+		case protos.ErrorMessage_SERVER_ERROR:
+			log.Printf("服务器错误 %v", err.Error())
+			ShowMsgBox("提示", "服务器错误")
+			return
+		case protos.ErrorMessage_OK:
+			//通过socket发送实际的文件数据
+			addr := "0.0.0.0:8959"
+			socketConn, err := net.Dial("tcp", addr)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer socketConn.Close()
+
+			msg := message.FileSocketMessage{
+				UserName: CurrentUser,
+				FileName: filepath.Base(file.Name()),
+				Type:     message.FILE_UPLOAD,
+			}
+
+			serializedData, err := json.Marshal(msg)
+			_, err = socketConn.Write(serializedData)
+			if err != nil {
+				fmt.Printf("socket写入数据失败 %v", err.Error())
+				return
+			}
+
+			buffer := make([]byte, 2048)
+			for {
+				n, err := file.Read(buffer)
+				if err == io.EOF {
+					break
+				}
+				_, err = socketConn.Write(buffer[:n])
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+			}
+
+			ShowMsgBox("提示", "上传成功")
+		}
 	}()
 }
 
@@ -149,159 +213,16 @@ func (mw *MyMainWindow) selectFile() {
 	dlg.Filter = strings.Join(filter, "|") //切片转换字符串
 	fmt.Printf("dlg.Filter: %+v\n", dlg.Filter)
 
-	record := getMessage(mw) //获取记录
 	if ok, err := dlg.ShowOpen(mw); err != nil {
-		mw.selectedfile.SetText("")                       //通过重定向变量设置TextEdit的Text
-		_ = writeMessage(mw, "Error : File Open", record) //写入记录
+		mw.selectedfile.SetText("") //通过重定向变量设置TextEdit的Text
 		return
 	} else if !ok {
-		mw.selectedfile.SetText("")            //通过重定向变量设置TextEdit的Text
-		_ = writeMessage(mw, "cancel", record) //写入记录
+		mw.selectedfile.SetText("") //通过重定向变量设置TextEdit的Text
 		return
 	}
-	s := fmt.Sprintf("Select : %s", dlg.FilePath)
-	_ = writeMessage(mw, s, record)       //写入记录
 	mw.selectedfile.SetText(dlg.FilePath) //通过重定向变量设置TextEdit的Text
 
 	//************************文件path**************************************************
 	fmt.Printf("dlg.FilePath: %+v\n", dlg.FilePath)
 	//********************************************************************************
-}
-
-func writeMessage(mw *MyMainWindow, message string, record []string) []string {
-	is_http := strings.Index(message, "http") //查找字符串位置
-	message_record := message
-	if is_http != -1 { // -1 是找不到
-		message_record = "双击查看图片：" + message
-
-		//插入默认浏览器打开记录
-		item := MessageItem{
-			Name:  "双击用默认浏览器打开图片" + message,
-			Value: message,
-		}
-		mw.model.items = append(mw.model.items, item)
-		record = append(record, "双击用默认浏览器打开图片"+message) //插入记录
-	}
-	record = append(record, message_record) //插入记录
-	appendMessageModel(mw, message)         //插入模型
-	mw.message.SetModel(record)             //记录输出
-
-	return record
-}
-
-//消息记录改变事件
-func (mw *MyMainWindow) lb_CurrentIndexChanged() {
-	fmt.Printf("mw.message.CurrentIndex(): ", mw.message.CurrentIndex())
-	fmt.Println()
-	return
-}
-
-//消息记录点击事件
-func (mw *MyMainWindow) lb_ItemActivated() {
-	fmt.Println("mw.message.CurrentIndex(): ", mw.message.CurrentIndex())
-	fmt.Println()
-	fmt.Printf("mw.model.items: %+v ", mw.model.items)
-	fmt.Println()
-
-	index := mw.message.CurrentIndex()
-	imagename := mw.model.items[index].Name    //获取当前选中名称
-	image := mw.model.items[index].Value       //获取当前选中值
-	is_http := strings.Index(image, "http")    //查找字符串位置
-	is_ie := strings.Index(imagename, "默认浏览器") //查找字符串位置
-	if is_http != -1 {                         // -1 是找不到
-		//walk.MsgBox(mw, "Value", value, walk.MsgBoxIconInformation) //提示框
-		fmt.Printf("image : %+v ", image)
-		fmt.Println()
-
-		if is_ie != -1 {
-			openImageExplorer(image) ////使用默认浏览器打开图片
-		} else {
-			openImageWebview(mw, image) ////使用webview打开图片
-		}
-	}
-	return
-}
-
-//使用默认浏览器打开图片
-func openImageExplorer(image string) {
-	cmd := exec.Command("explorer", image)
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println(err)
-	}
-	return
-}
-
-//创建html,使用webview打开图片
-func openImageWebview(mw *MyMainWindow, image string) {
-	go func() {
-		h := md5.New()
-		io.WriteString(h, image)
-		htmlname := fmt.Sprintf("%x", h.Sum(nil)) //生成html名称
-		userFile := "" + htmlname + ".html"
-		fileall := getCurrentDirectory() + "/" + userFile //html的绝对路径
-
-		fout, err := os.Create(fileall) //创建html文件
-		defer fout.Close()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		html := `<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>图片展示</title></head><body><a href="%s" target="_self">%s</a><br><img src="%s" alt=""></body></html>`
-		html = fmt.Sprintf(html, image, image, image) //插入图片
-		fout.WriteString(html)                        //把字符串写入html
-
-		mw.wv.SetURL("file:///" + getCurrentDirectory() + "/" + userFile)
-	}()
-}
-
-//获取当前文件路径
-func getCurrentDirectory() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return strings.Replace(dir, "\\", "/", -1)
-}
-
-//消息记录每个模型
-type MessageItem struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-//消息记录模型
-type MessageModel struct {
-	walk.ListModelBase
-	items []MessageItem
-}
-
-//新建消息模型
-func NewMessageModel() *MessageModel {
-	m := &MessageModel{items: []MessageItem{}}
-	return m
-}
-
-//插入到消息模型中
-func appendMessageModel(mw *MyMainWindow, message string) {
-	item := MessageItem{
-		Name:  message,
-		Value: message,
-	}
-	mw.model.items = append(mw.model.items, item)
-
-}
-
-//获取记录
-func getMessage(mw *MyMainWindow) []string {
-	message := mw.message.Model() //获取以前的记录
-	fmt.Println("message", message)
-	record := []string{} //记录
-	if message != nil {
-		for _, v := range message.([]string) {
-			record = append(record, v) //插入以前的记录
-		}
-	}
-	return record
 }

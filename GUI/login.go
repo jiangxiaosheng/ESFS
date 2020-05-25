@@ -31,7 +31,8 @@ func GetLoginPage() []Widget {
 					Text: "密码:",
 				},
 				LineEdit{
-					AssignTo: &_passwordEdit,
+					AssignTo:     &_passwordEdit,
+					PasswordMode: true,
 				},
 				RadioButton{
 					AssignTo: &_rememberRadioButton,
@@ -48,7 +49,7 @@ func GetLoginPage() []Widget {
 		PushButton{
 			Text: "注册",
 			OnClicked: func() {
-				//fmt.Println(_usernameEdit.Text())
+				CreateRegisterWindow()
 			},
 		},
 	}
