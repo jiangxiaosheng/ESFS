@@ -118,7 +118,7 @@ func CreateRegisterWindow() {
 			PushButton{
 				Text: "转到keyserver的注册界面",
 				OnClicked: func() {
-					//CreateKeyServerWindow()TODO:编写keyserver注册界面
+					CreateKeyServerWindow()
 				},
 			},
 		},

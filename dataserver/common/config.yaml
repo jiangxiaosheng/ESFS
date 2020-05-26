@@ -5,7 +5,7 @@ db:
   port: 3306
   username: root
   password: jiangyev5
-  tables: cert
+  tables: users
 
 common:
   basedir: E:\GoLand\GoLand 2019.3.3\codes\src\ESFS2.0

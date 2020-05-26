@@ -3,6 +3,9 @@ package GUI
 import (
 	clicommon "ESFS2.0/client/common"
 	"ESFS2.0/message"
+	"ESFS2.0/message/protos"
+	"ESFS2.0/utils"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
@@ -14,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type MyMainWindow struct {
@@ -97,6 +101,11 @@ func OpenWindow() {
 }
 
 func upload(mw *MyMainWindow) {
+	if _notuseRadioButton.Text() == "" {
+		clicommon.ShowMsgBox("提示", "请填写二级密码")
+		return
+	}
+
 	path := mw.selectedfile.Text()
 	file, err := os.Open(path)
 	if err != nil {
@@ -105,45 +114,117 @@ func upload(mw *MyMainWindow) {
 		return
 	}
 
-	addr := "0.0.0.0:8959"
-	conn, err := net.Dial("tcp", addr)
+	//1.建立grpc连接，发送文件准备请求，同时得到默认二级密码
+	c, conn, err := clicommon.GetFileHandleClient()
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer conn.Close()
 
-	msg := message.FileSocketMessage{
-		UserName: CurrentUser,
-		FileName: filepath.Base(file.Name()),
-		Type:     message.FILE_UPLOAD,
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	serializedData, err := json.Marshal(msg)
-	_, err = conn.Write(serializedData)
+	stat, _ := file.Stat()
+	fileInfo := message.FileInfo{
+		Name:    stat.Name(),
+		Mode:    stat.Mode(),
+		Size:    stat.Size(),
+		ModTime: stat.ModTime(),
+	}
+	serializedData, err := json.Marshal(fileInfo)
 	if err != nil {
-		fmt.Printf("socket写入数据失败 %v", err.Error())
+		log.Printf("序列化文件信息失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
 		return
 	}
 
-	buffer := make([]byte, 2048)
-	for {
-		n, err := file.Read(buffer)
-		if err == io.EOF {
-			break
-		}
-		_, err = conn.Write(buffer[:n])
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+	fmt.Println(stat.Name(), stat.Mode(), stat.Size(), stat.ModTime())
+
+	request := &protos.UploadPrepareRequest{
+		Username: CurrentUser,
+		FileInfo: serializedData,
 	}
 
-	clicommon.ShowMsgBox("提示", "上传成功")
+	response, err := c.UploadPrepare(ctx, request)
 
-	//异步上传
-	go func() {
+	switch response.ErrorMessage {
+	case protos.ErrorMessage_SERVER_ERROR:
+		log.Printf("服务器错误 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	case protos.ErrorMessage_OK:
+		defaultSecondKey := response.DefaultSecondKey
+		if _notuseRadioButton.Checked() {
+			defaultSecondKey = _notuseRadioButton.Text()
+		}
 
-	}()
+		//2.对文件进行AES加密，并生成签名信息
+		privateKey := clicommon.GetUserPrivateKey()
+		sessionKey, err := utils.GenerateSessionKeyWithSecondKey(defaultSecondKey, privateKey)
+		if err != nil {
+			log.Printf("服务器错误 %v", err.Error())
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		}
+		encryptedData, err := utils.AESEncryptFileToBytes(path, sessionKey)
+		if err != nil {
+			log.Printf("加密文件失败 %v", err.Error())
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		}
+
+		//3.建立socket连接，发送加密文件数据
+		addr := "0.0.0.0:8959"
+		socketConn, err := net.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer conn.Close()
+
+		msg := message.FileSocketMessage{
+			UserName: CurrentUser,
+			FileName: filepath.Base(file.Name()),
+			Type:     message.FILE_UPLOAD,
+		}
+
+		serializedData, err = json.Marshal(msg)
+		_, err = socketConn.Write(serializedData)
+		if err != nil {
+			log.Printf("socket写入数据失败 %v", err.Error())
+			return
+		}
+
+		buffer := make([]byte, 2048)
+		for {
+			n, err := file.Read(buffer)
+			if err == io.EOF {
+				break
+			}
+			_, err = socketConn.Write(buffer[:n])
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+		}
+
+		//4.使用grpc服务传签名信息（因为签名数据不大，所以用grpc是没问题的）
+		dsRequest := &protos.UploadDSRequest{
+			Username: CurrentUser,
+			Filename: stat.Name(),
+			DsData:   encryptedData,
+		}
+		dsResponse, err := c.UploadDS(ctx, dsRequest)
+		switch dsResponse.ErrorMessage {
+		case protos.ErrorMessage_SERVER_ERROR:
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		case protos.ErrorMessage_OK:
+			clicommon.ShowMsgBox("提示", "上传成功")
+			return
+		}
+
+		utils.SignatureFile(file, clicommon.GetUserPrivateKey())
+	}
 }
 
 func (mw *MyMainWindow) selectFile() {

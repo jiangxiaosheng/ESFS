@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 )
 
 /**
@@ -187,30 +186,15 @@ func VerifyDS(ds, sourceData []byte, key *rsa.PublicKey) bool {
 @author js
 对文件用私钥进行签名，返回一个签名文件，后缀名为.sig
 */
-func SignatureFile(file *os.File, key *rsa.PrivateKey) error {
+func SignatureFile(file *os.File, key *rsa.PrivateKey) ([]byte, error) {
 	buf := FileToBytes(file)
 	ds, err := GenerateDS(buf, key)
 	if err != nil {
 		log.Printf("生成数字签名失败 %v", err.Error())
-		return err
+		return nil, err
 	}
 
-	absPath, err := filepath.Abs(filepath.Dir(file.Name()))
-	if err != nil {
-		log.Printf(err.Error())
-		return err
-	}
-
-	info, _ := file.Stat()
-	signedFile, err := os.Create(absPath + "/." + info.Name() + ".sig")
-	if err != nil {
-		log.Printf(err.Error())
-		return err
-	}
-
-	err = ioutil.WriteFile(signedFile.Name(), ds, 0666)
-
-	return nil
+	return ds, nil
 }
 
 /**
@@ -250,7 +234,7 @@ func GenerateSessionKeyWithSecondKey(secondKey string, priKey *rsa.PrivateKey) (
 @author ytw
 对称密钥加密文件
 */
-func EncryptFileToBytes(path string, key []byte) ([]byte, error) {
+func AESEncryptFileToBytes(path string, key []byte) ([]byte, error) {
 	file, _ := ReadFile(path)
 	encrypt, err := aesEncrypt(file, key)
 	if err != nil {
@@ -264,8 +248,8 @@ func EncryptFileToBytes(path string, key []byte) ([]byte, error) {
 @author ytw
 对称密钥加密文件后生成文件
 */
-func EncryptFileToFile(path string, key []byte, destPath string) error {
-	fileToBytes, err := EncryptFileToBytes(path, key)
+func AESEncryptFileToFile(path string, key []byte, destPath string) error {
+	fileToBytes, err := AESEncryptFileToBytes(path, key)
 	if err != nil {
 		log.Printf("文件加密失败", err.Error())
 		return err

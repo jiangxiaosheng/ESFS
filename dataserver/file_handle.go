@@ -66,9 +66,30 @@ func fileSocketServer() {
 				//TODO
 			}
 		}(conn)
+	}
+}
 
+/**
+@author js
+*/
+func (s *dataServer) UploadDS(ctx context.Context, req *protos.UploadDSRequest) (*protos.UploadDSResponse, error) {
+	file, err := os.Create(path.Join(common.BaseDir, "dataserver", "data", req.Username, "."+req.Filename+".sig"))
+	if err != nil {
+		log.Printf("创建文件失败 %v", err.Error())
+		return &protos.UploadDSResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, err
 	}
 
+	err = ioutil.WriteFile(file.Name(), req.DsData, 0644)
+	if err != nil {
+		log.Printf("写入签名数据失败 %v", err.Error())
+		return &protos.UploadDSResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, err
+	}
+
+	return &protos.UploadDSResponse{ErrorMessage: protos.ErrorMessage_OK}, nil
 }
 
 /**

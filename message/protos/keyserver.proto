@@ -1,15 +1,12 @@
 syntax = "proto3";
+package protos;
+import "dataserver.proto";
 
 option go_package = ".;protos";
 option java_multiple_files = true;
 option java_package = "esfs.keyserver";
 option java_outer_classname = "KeyserverProto";
 
-enum ErrorMessage {
-    OK = 0;
-    SERVER_ERROR = 1;
-    USER_ALREADY_EXISTS = 2;
-}
 
 service KeyStore {
     rpc getCert(GetCertRequest) returns (GetCertResponse) {}
@@ -21,7 +18,7 @@ message GetCertRequest {
 }
 
 message GetCertResponse {
-    bool ok = 1;
+    ErrorMessage errorMessage = 1;
     bytes content = 2;
 }
 

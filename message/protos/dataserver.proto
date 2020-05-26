@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package protos;
+
 option go_package = ".;protos";
 option java_multiple_files = true;
 option java_package = "esfs.dataserver";
@@ -42,6 +44,7 @@ message RegisterResponse {
 service FileHandle {
   rpc listFiles(ListFilesRequest) returns (ListFilesResponse) {}
   rpc uploadPrepare(UploadPrepareRequest) returns (UploadPrepareResponse) {}
+  rpc uploadDS(UploadDSRequest) returns (UploadDSResponse) {}
 }
 
 message ListFilesRequest {
@@ -61,4 +64,14 @@ message UploadPrepareRequest {
 message UploadPrepareResponse {
   ErrorMessage errorMessage = 1;
   string defaultSecondKey = 2;
+}
+
+message UploadDSRequest {
+  string username = 1;
+  string filename = 2;
+  bytes dsData = 3;
+}
+
+message UploadDSResponse {
+  ErrorMessage errorMessage = 1;
 }
