@@ -1,0 +1,11 @@
+db:
+  driver: mysql
+  name: esfs
+  host: 0.0.0.0
+  port: 3306
+  username: root
+  password: jiangyev5
+  tables: [users, metadata]
+
+common:
+  basedir: E:\GoLand\GoLand 2019.3.3\codes\src\ESFS2.0

@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"ESFS2.0/client"
+	"ESFS2.0/client/common"
 	"ESFS2.0/message/protos"
 	"context"
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	c, conn, err := client.GetAuthenticationClient()
+	c, conn, err := common.GetAuthenticationClient()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -32,7 +32,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	c, conn, err := client.GetAuthenticationClient()
+	c, conn, err := common.GetAuthenticationClient()
 	if err != nil {
 		fmt.Println(err)
 	}

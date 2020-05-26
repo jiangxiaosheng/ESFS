@@ -1,30 +1,50 @@
 package utils
 
 import (
-	"archive/zip"
+	"bytes"
 	"crypto/rsa"
 	"fmt"
-	"io"
+	"github.com/archivefile/zip"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
 
 /**
 @author yyx
-TODO: path为需要压缩的路径地址（可能是文件或者目录，需要自己判断）,dest为输出路径，返回相应的压缩文件和错误
+DONE: path为需要压缩的路径地址（不需要判断是否为目录）,dest为输出路径，返回相应的压缩文件和错误，d为返回的*os.File对象
 */
-func CompressToFile(path, dest string) (*os.File, error) {
-	return nil, nil
+func CompressToFile(path string, dest string) (*os.File, error) {
+	err := zip.ArchiveFile(path, dest, nil)
+	if err != nil {
+		log.Printf("压缩文件失败 %v", err.Error())
+		return nil, err
+	}
+
+	d, err := os.Open(dest)
+	if err != nil {
+		log.Printf("打开文件出错")
+		return nil, err
+	}
+	return d, nil
 }
 
 /**
 @author yyx
-TODO: 和上面的函数类似，只是压缩到一个字节数组里面，只要实现这个函数，上面的函数就可以调用这个函数写入到文件就行
-TODO: 下面有一些函数可以参考，注意命名规范
 */
 func CompressToBytes(path string) ([]byte, error) {
-	return nil, nil
+	var b []byte
+	writer := bytes.NewBuffer(b)
+
+	err := zip.Archive(path, writer, nil)
+	if err != nil {
+		log.Printf("压缩文件失败 %v", err.Error())
+		return nil, err
+	}
+
+	writer.Bytes()
+	return writer.Bytes(), nil
 }
 
 /**
@@ -41,13 +61,13 @@ func rev(base string, fileArr *[]*os.File) {
 				}
 				*fileArr = append(*fileArr, Rfile)
 			} else {
-				var rbase = base + file.Name() + "/"
+				//var rbase = base + file.Name() + "/"
 				Rfile, error := os.Open(base + file.Name())
 				if error != nil {
 					println(error)
 				}
 				*fileArr = append(*fileArr, Rfile)
-				rev(rbase, fileArr)
+				//rev(rbase, fileArr)
 			}
 		}
 	} else {
@@ -69,11 +89,11 @@ func ReadFiles(dir string, fileArr *[]*os.File) {
 			*fileArr = append(*fileArr, Rfile)
 		} else {
 			var base = dir + "/"
-			Rfile, error := os.Open(dir)
+			_, error := os.Open(dir)
 			if error != nil {
 				println(error)
 			} else {
-				*fileArr = append(*fileArr, Rfile)
+				//*fileArr = append(*fileArr, Rfile)
 				rev(base, fileArr)
 			}
 		}
@@ -133,92 +153,6 @@ func WriteFile(filePth string, data []byte) error {
 //压缩文件
 //files 文件数组，可以是不同dir下的文件或者文件夹
 //dest 压缩文件存放地址
-func Compress(files []*os.File, dest string) (*os.File, error) {
-	d, _ := os.Create(dest)
-	defer d.Close()
-	w := zip.NewWriter(d)
-	defer w.Close()
-	for _, file := range files {
-		err := compress(file, "", w)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return d, nil
-}
-
-func compress(file *os.File, prefix string, zw *zip.Writer) error {
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		prefix = prefix + "/" + info.Name()
-		fileInfos, err := file.Readdir(-1)
-		if err != nil {
-			return err
-		}
-		for _, fi := range fileInfos {
-			f, err := os.Open(file.Name() + "/" + fi.Name())
-			if err != nil {
-				return err
-			}
-			err = compress(f, prefix, zw)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		header, err := zip.FileInfoHeader(info)
-		header.Name = prefix + "/" + header.Name
-		if err != nil {
-			return err
-		}
-		writer, err := zw.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(writer, file)
-		file.Close()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-//解压
-func Decompress(zipFile, dest string) error {
-	reader, err := zip.OpenReader(zipFile)
-	if err != nil {
-		return err
-	}
-	defer reader.Close()
-	for _, file := range reader.File {
-		rc, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer rc.Close()
-		filename := dest + file.Name
-		err = os.MkdirAll(getDir(filename), 0755)
-		if err != nil {
-			return err
-		}
-		w, err := os.Create(filename)
-		if err != nil {
-			return err
-		}
-		defer w.Close()
-		_, err = io.Copy(w, rc)
-		if err != nil {
-			return err
-		}
-		w.Close()
-		rc.Close()
-	}
-	return nil
-}
 
 func getDir(path string) string {
 	return subString(path, 0, strings.LastIndex(path, "/"))
@@ -237,6 +171,16 @@ func subString(str string, start, end int) string {
 	}
 
 	return string(rs[start:end])
+}
+func main() { //测试
+	var list []*os.File
+	ReadFiles("C:/Users/Administrator/go/copy", &list)
+	for i := 0; i < len(list); i++ {
+		//fmt.Println(list[i].Name())
+	}
+	//CompressToFile("C:/Users/Administrator/go/src", "C:/Users/Administrator/go/copy/new.zip")
+	CompressToBytes("C:/Users/Administrator/go/src")
+	//str := string(b)
 }
 
 ////////////////////////////////////////////////////////

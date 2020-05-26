@@ -81,6 +81,7 @@ func GenerateRandomBytes(bits int) []byte {
 }
 
 /**
+@author js
 加盐哈希
 */
 func HashWithSalt(passwd, salt string) string {
@@ -90,6 +91,23 @@ func HashWithSalt(passwd, salt string) string {
 }
 
 /**
+@author js
+对文件进行散列，用于进行数字签名
+*/
+func HashFile(path string) ([]byte, error) {
+	buffer, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Printf("读取文件出错 %v", err.Error())
+		return nil, err
+	}
+
+	h := sha256.New()
+	h.Write(buffer)
+	return h.Sum(nil), nil
+}
+
+/**
+@author js
 从私钥文件读取私钥
 */
 func GetPrivateKeyFromFile(filename string) *rsa.PrivateKey {
@@ -138,16 +156,16 @@ func GetPublicKeyFromFile(filename string) *rsa.PublicKey {
 		key 私钥
 @returns:数字签名
 */
-func GenerateDS(sourceData []byte, key *rsa.PrivateKey) []byte {
+func GenerateDS(sourceData []byte, key *rsa.PrivateKey) ([]byte, error) {
 	h := sha256.New()
 	h.Write(sourceData)
 	hashValue := h.Sum(nil)
 
 	res, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, hashValue)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return res
+	return res, nil
 }
 
 /**
@@ -171,18 +189,22 @@ func VerifyDS(ds, sourceData []byte, key *rsa.PublicKey) bool {
 */
 func SignatureFile(file *os.File, key *rsa.PrivateKey) error {
 	buf := FileToBytes(file)
-	ds := GenerateDS(buf, key)
+	ds, err := GenerateDS(buf, key)
+	if err != nil {
+		log.Printf("生成数字签名失败 %v", err.Error())
+		return err
+	}
 
 	absPath, err := filepath.Abs(filepath.Dir(file.Name()))
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Printf(err.Error())
 		return err
 	}
 
 	info, _ := file.Stat()
 	signedFile, err := os.Create(absPath + "/." + info.Name() + ".sig")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Printf(err.Error())
 		return err
 	}
 

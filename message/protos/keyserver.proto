@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = ".;protos";
+option java_multiple_files = true;
+option java_package = "esfs.keyserver";
+option java_outer_classname = "KeyserverProto";
+
+enum ErrorMessage {
+    OK = 0;
+    SERVER_ERROR = 1;
+    USER_ALREADY_EXISTS = 2;
+}
+
+service KeyStore {
+    rpc getCert(GetCertRequest) returns (GetCertResponse) {}
+    rpc setCert(SetCertRequest) returns (SetCertResponse) {}
+}
+
+message GetCertRequest {
+    string username = 1;
+}
+
+message GetCertResponse {
+    bool ok = 1;
+    bytes content = 2;
+}
+
+message SetCertRequest {
+    string username = 1;
+    bytes content = 2;
+}
+
+message SetCertResponse {
+    ErrorMessage errorMessage = 1;
+}

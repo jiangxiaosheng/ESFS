@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ESFS2.0/dataserver/common"
+	"ESFS2.0/keyserver/common"
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"context"

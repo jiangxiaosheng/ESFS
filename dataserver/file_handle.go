@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ESFS2.0/dataserver/common"
+	"ESFS2.0/keyserver/common"
 	"ESFS2.0/message"
 	"ESFS2.0/message/protos"
 	"context"
@@ -62,6 +62,8 @@ func fileSocketServer() {
 					}
 				}
 				file.Close()
+			} else if msg.Type == message.FILE_DOWNLOAD {
+				//TODO
 			}
 		}(conn)
 
@@ -80,18 +82,19 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 		log.Printf("反序列化失败 %v", err.Error())
 		return &protos.UploadPrepareResponse{
 			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
-			DefaultSecondKey: nil,
+			DefaultSecondKey: "",
 		}, err
 	}
 
 	//创建指定文件
 	//Create函数若文件已存在则会截断，不存在则新建
 	file, err := os.Create(path.Join(common.BaseDir, "dataserver", "data", req.Username, fileInfo.Name))
+	fmt.Printf(fileInfo.Name)
 	if err != nil {
 		log.Printf("创建文件失败 %v", err.Error())
 		return &protos.UploadPrepareResponse{
 			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
-			DefaultSecondKey: nil,
+			DefaultSecondKey: "",
 		}, err
 	}
 	defer file.Close()
@@ -102,7 +105,7 @@ func (s *dataServer) UploadPrepare(ctx context.Context, req *protos.UploadPrepar
 		log.Printf("获取二级密码失败 %v", err.Error())
 		return &protos.UploadPrepareResponse{
 			ErrorMessage:     protos.ErrorMessage_SERVER_ERROR,
-			DefaultSecondKey: nil,
+			DefaultSecondKey: "",
 		}, err
 	}
 

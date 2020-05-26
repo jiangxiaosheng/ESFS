@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"ESFS2.0/client"
+	"ESFS2.0/client/common"
 	"ESFS2.0/message"
 	"ESFS2.0/message/protos"
 	"context"
@@ -19,7 +19,7 @@ func TestFileServer(t *testing.T) {
 }
 
 func TestFileClient(t *testing.T) {
-	c, conn, err := client.GetFileHandleClient()
+	c, conn, err := common.GetFileHandleClient()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -88,7 +88,7 @@ func TestFileSocket(t *testing.T) {
 }
 
 func TestListFiles(t *testing.T) {
-	c, conn, err := client.GetFileHandleClient()
+	c, conn, err := common.GetFileHandleClient()
 	if err != nil {
 		fmt.Println(err)
 	}
