@@ -45,6 +45,8 @@ service FileHandle {
   rpc listFiles(ListFilesRequest) returns (ListFilesResponse) {}
   rpc uploadPrepare(UploadPrepareRequest) returns (UploadPrepareResponse) {}
   rpc uploadDS(UploadDSRequest) returns (UploadDSResponse) {}
+  rpc downloadPrepare(DownloadPrepareRequest) returns (DownloadPrepareResponse) {}
+  rpc removeFiles(RemoveFilesRequest) returns (RemoveFilesResponse) {}
 }
 
 message ListFilesRequest {
@@ -59,6 +61,7 @@ message ListFilesResponse {
 message UploadPrepareRequest {
   string username = 1;
   bytes fileInfo = 2;
+  string secondKey = 3;
 }
 
 message UploadPrepareResponse {
@@ -73,5 +76,23 @@ message UploadDSRequest {
 }
 
 message UploadDSResponse {
+  ErrorMessage errorMessage = 1;
+}
+
+message DownloadPrepareRequest {
+  string username = 1;
+}
+
+message DownloadPrepareResponse {
+  ErrorMessage errorMessage = 1;
+  bytes content = 2;
+}
+
+message RemoveFilesRequest {
+  string username = 1;
+  repeated string filenames = 2;
+}
+
+message RemoveFilesResponse {
   ErrorMessage errorMessage = 1;
 }

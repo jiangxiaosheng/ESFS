@@ -21,6 +21,9 @@ type FileInfo struct {
 
 type FileSocketMessage struct {
 	UserName string
-	FileName string
+	FileName []string
 	Type     OpType
+}
+
+type SignalOver struct {
 }

@@ -238,7 +238,7 @@ func AESEncryptFileToBytes(path string, key []byte) ([]byte, error) {
 	file, _ := ReadFile(path)
 	encrypt, err := aesEncrypt(file, key)
 	if err != nil {
-		log.Printf("文件加密失败", err.Error())
+		log.Printf("文件加密失败 %v", err.Error())
 		return nil, err
 	}
 	return encrypt, err
@@ -251,12 +251,30 @@ func AESEncryptFileToBytes(path string, key []byte) ([]byte, error) {
 func AESEncryptFileToFile(path string, key []byte, destPath string) error {
 	fileToBytes, err := AESEncryptFileToBytes(path, key)
 	if err != nil {
-		log.Printf("文件加密失败", err.Error())
+		log.Printf("文件加密失败 %v", err.Error())
 		return err
 	}
 	err = WriteFile(destPath, fileToBytes)
 	if err != nil {
-		log.Printf("文件加密失败", err.Error())
+		log.Printf("文件加密失败 %v", err.Error())
+		return err
+	}
+	return nil
+}
+
+/**
+@author js
+AES解密到文件
+*/
+func AESDecryptToFile(data, key []byte, destPath string) error {
+	data, err := aesDecrypt(data, key)
+	if err != nil {
+		log.Printf("文件解密失败 %v", err.Error())
+		return err
+	}
+	err = WriteFile(destPath, data)
+	if err != nil {
+		log.Printf("文件解密失败 %v", err.Error())
 		return err
 	}
 	return nil

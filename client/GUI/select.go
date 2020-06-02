@@ -1,14 +1,20 @@
 package GUI
 
 import (
-	"ESFS2.0/client/common"
+	clicommon "ESFS2.0/client/common"
 	"ESFS2.0/message"
 	"ESFS2.0/message/protos"
+	"ESFS2.0/utils"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"io"
+	"log"
+	"net"
+	"os"
+	"path"
 	"sort"
 	"time"
 )
@@ -98,7 +104,7 @@ func (m *FileModel) Swap(i, j int) {
 }
 
 func NewFileModel() *FileModel {
-	c, conn, err := common.GetFileHandleClient()
+	c, conn, err := clicommon.GetFileHandleClient()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -139,13 +145,11 @@ type FileMainWindow struct {
 
 func GetSelectPage() []Widget {
 	mw := &FileMainWindow{}
-
 	//异步渲染
 	//go func() {
 	//	mw.model = NewFileModel()
 	//}()
 	mw.model = NewFileModel()
-
 	var a []Widget
 	a = []Widget{
 		Composite{
@@ -158,13 +162,19 @@ func GetSelectPage() []Widget {
 				PushButton{
 					Text: "下载",
 					OnClicked: func() {
-
+						selectDownloadFile(mw)
 					},
 				},
 				PushButton{
 					Text: "上传",
 					OnClicked: func() {
 						OpenWindow()
+					},
+				},
+				PushButton{
+					Text: "删除",
+					OnClicked: func() {
+						removeFiles(mw)
 					},
 				},
 				PushButton{
@@ -208,7 +218,170 @@ func GetSelectPage() []Widget {
 			},
 		},
 	}
+	MainWindow{
+		AssignTo: &mw.MainWindow,
+		Title:    "文件上传",
+		MinSize:  Size{300, 400},
+		Layout:   VBox{},
+		Children: []Widget{},
+		Visible:  false,
+	}.Create()
+	mw.MainWindow.Close()
+
 	return a
+}
+
+func selectDownloadFile(mw *FileMainWindow) {
+	dlg := new(walk.FileDialog)
+	dlg.Title = "选择文件"
+	if ok, err := dlg.ShowBrowseFolder(mw); err != nil {
+		return
+	} else if !ok {
+		return
+	} else {
+		fmt.Println(dlg.FilePath)
+		go func() {
+			download(mw, dlg.FilePath)
+		}()
+	}
+}
+
+func download(mw *FileMainWindow, dir string) {
+	fileItems := mw.model.items
+	var filesToDownload []string
+	for _, fileRecord := range fileItems {
+		if fileRecord.checked {
+			filesToDownload = append(filesToDownload, fileRecord.Name)
+		}
+	}
+
+	//使用grpc获取文件-二级密码map
+	c, conn, err := clicommon.GetFileHandleClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	request := &protos.DownloadPrepareRequest{
+		Username: CurrentUser,
+	}
+	response, err := c.DownloadPrepare(ctx, request)
+	if err != nil {
+		log.Printf("获取二级密码失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+	var m map[string]string
+
+	err = json.Unmarshal(response.Content, &m)
+	if err != nil {
+		log.Printf("反序列化失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+
+	priKey := clicommon.GetUserPrivateKey()
+	if priKey == nil {
+		log.Printf("读取私钥失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+
+	msg := message.FileSocketMessage{
+		UserName: CurrentUser,
+		FileName: filesToDownload,
+		Type:     message.FILE_DOWNLOAD,
+	}
+	addr := "0.0.0.0:8959"
+	socketConn, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Printf("建立socket连接失败 %v", err)
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+	serializedData, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("序列化失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+	_, err = socketConn.Write(serializedData)
+	if err != nil {
+		log.Printf("socket写入数据失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+
+	buffer := make([]byte, 2048)
+	socketConn.Read(buffer)
+	socketConn.Write([]byte{1})
+
+	for _, filename := range filesToDownload {
+		signal := &message.SignalOver{}
+		var encryptedData []byte
+		for {
+			n, err := socketConn.Read(buffer)
+			if err == io.EOF {
+				break
+			}
+			if json.Unmarshal(buffer[:n], signal) == nil {
+				break
+			}
+
+			encryptedData = append(encryptedData, buffer[:n]...)
+			if err != nil {
+				log.Printf("读取字节失败 %v", err.Error())
+				clicommon.ShowMsgBox("提示", "服务器错误")
+				return
+			}
+			socketConn.Write([]byte{1})
+		}
+		key, err := utils.GenerateSessionKeyWithSecondKey(m[filename], priKey)
+		if err != nil {
+			log.Printf("生成会话密钥失败 %v", err.Error())
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		}
+		err = utils.AESDecryptToFile(encryptedData, key, path.Join(dir, filename))
+		if err != nil {
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		}
+
+		socketConn.Write([]byte{1})
+
+		sigFile, err := os.Create(path.Join(dir, "."+filename+".sig"))
+		if err != nil {
+			log.Printf("签名文件创建失败 %v", err.Error())
+			clicommon.ShowMsgBox("提示", "服务器错误")
+			return
+		}
+
+		log.Println("创建签名文件")
+		for {
+			n, err := socketConn.Read(buffer)
+			if err == io.EOF {
+				break
+			}
+			fmt.Println(string(buffer[:n]))
+			if json.Unmarshal(buffer[:n], signal) == nil {
+				break
+			}
+			_, err = sigFile.Write(buffer[:n])
+			if err != nil {
+				log.Printf("签名文件写入失败 %v", err.Error())
+				clicommon.ShowMsgBox("提示", "服务器错误")
+				return
+			}
+			socketConn.Write([]byte{1})
+		}
+		log.Println("签名文件写入完毕")
+		sigFile.Close()
+		socketConn.Write([]byte{1})
+	}
+	clicommon.ShowMsgBox("提示", "下载成功")
 }
 
 func logout() {
@@ -222,4 +395,39 @@ func (mw *FileMainWindow) tvItemActivated() {
 		msg = msg + "\n" + mw.model.items[i].Name
 	}
 	walk.MsgBox(mw, "title", msg, walk.MsgBoxIconInformation)
+}
+
+func removeFiles(mw *FileMainWindow) {
+	fileItems := mw.model.items
+	var filesToRemove []string
+	for _, fileRecord := range fileItems {
+		if fileRecord.checked {
+			filesToRemove = append(filesToRemove, fileRecord.Name)
+		}
+	}
+
+	go func() {
+		c, conn, err := clicommon.GetFileHandleClient()
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer conn.Close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		request := &protos.RemoveFilesRequest{
+			Username:  CurrentUser,
+			Filenames: filesToRemove,
+		}
+
+		response, err := c.RemoveFiles(ctx, request)
+		if response.ErrorMessage != protos.ErrorMessage_OK {
+			clicommon.ShowMsgBox("提示", "删除失败")
+			return
+		}
+		mw.model = NewFileModel()
+		clicommon.ShowMsgBox("提示", "删除成功")
+	}()
+
 }

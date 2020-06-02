@@ -61,7 +61,7 @@ func TestFileSocket(t *testing.T) {
 
 	msg := message.FileSocketMessage{
 		UserName: "memeshe",
-		FileName: "8.jpg",
+		FileName: []string{"8.jpg"},
 		Type:     message.FILE_UPLOAD,
 	}
 

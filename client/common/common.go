@@ -1,6 +1,7 @@
 package common
 
 import (
+	"ESFS2.0/keyserver/common"
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"crypto/rsa"
@@ -8,6 +9,7 @@ import (
 	"github.com/lxn/walk"
 	"google.golang.org/grpc"
 	"log"
+	"path"
 )
 
 func ShowMsgBox(title, content string) {
@@ -40,13 +42,13 @@ func GetFileHandleClient() (protos.FileHandleClient, *grpc.ClientConn, error) {
 }
 
 func GetUserPrivateKey() *rsa.PrivateKey {
-	keyPath := "../keys/private.pem"
+	keyPath := path.Join(common.BaseDir, "client", "keys", "private.pem")
 	key := utils.GetPrivateKeyFromFile(keyPath)
 	return key
 }
 
 func GetUserPublicKey() *rsa.PublicKey {
-	keyPath := "..keys/public.pem"
+	keyPath := path.Join(common.BaseDir, "client", "keys", "public.pem")
 	key := utils.GetPublicKeyFromFile(keyPath)
 	return key
 }
