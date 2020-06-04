@@ -17,8 +17,8 @@ var HasLogin bool
 var CurrentUser string
 
 func init() {
-	HasLogin = true //*********是否已登录********
-	CurrentUser = "memeshe"
+	HasLogin = false //*********是否已登录********
+	//CurrentUser = "memeshe"
 }
 
 func GetLoginPage() []Widget {

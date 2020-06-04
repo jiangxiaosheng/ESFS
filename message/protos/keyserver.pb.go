@@ -257,19 +257,18 @@ var file_keyserver_proto_rawDesc = []byte{
 	0x72, 0x72, 0x6f, 0x72, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x0e, 0x32, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72,
 	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x0c, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x4d, 0x65,
-	0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x86, 0x01, 0x0a, 0x08, 0x4b, 0x65, 0x79, 0x53, 0x74, 0x6f,
-	0x72, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x67, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x12, 0x16, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x47, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x47,
-	0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00,
-	0x12, 0x3c, 0x0a, 0x07, 0x73, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x12, 0x16, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x53, 0x65, 0x74,
-	0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x2c,
-	0x0a, 0x0e, 0x65, 0x73, 0x66, 0x73, 0x2e, 0x6b, 0x65, 0x79, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-	0x42, 0x0e, 0x4b, 0x65, 0x79, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f,
-	0x50, 0x01, 0x5a, 0x08, 0x2e, 0x3b, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62, 0x06, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x80, 0x01, 0x0a, 0x02, 0x43, 0x41, 0x12, 0x3c, 0x0a, 0x07,
+	0x67, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x12, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73,
+	0x2e, 0x47, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x47, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3c, 0x0a, 0x07, 0x73, 0x65,
+	0x74, 0x43, 0x65, 0x72, 0x74, 0x12, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x53,
+	0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x17, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x2c, 0x0a, 0x0e, 0x65, 0x73, 0x66, 0x73,
+	0x2e, 0x6b, 0x65, 0x79, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x42, 0x0e, 0x4b, 0x65, 0x79, 0x73,
+	0x65, 0x72, 0x76, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x08, 0x2e, 0x3b,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -295,10 +294,10 @@ var file_keyserver_proto_goTypes = []interface{}{
 var file_keyserver_proto_depIdxs = []int32{
 	4, // 0: protos.GetCertResponse.errorMessage:type_name -> protos.ErrorMessage
 	4, // 1: protos.SetCertResponse.errorMessage:type_name -> protos.ErrorMessage
-	0, // 2: protos.KeyStore.getCert:input_type -> protos.GetCertRequest
-	2, // 3: protos.KeyStore.setCert:input_type -> protos.SetCertRequest
-	1, // 4: protos.KeyStore.getCert:output_type -> protos.GetCertResponse
-	3, // 5: protos.KeyStore.setCert:output_type -> protos.SetCertResponse
+	0, // 2: protos.CA.getCert:input_type -> protos.GetCertRequest
+	2, // 3: protos.CA.setCert:input_type -> protos.SetCertRequest
+	1, // 4: protos.CA.getCert:output_type -> protos.GetCertResponse
+	3, // 5: protos.CA.setCert:output_type -> protos.SetCertResponse
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -390,108 +389,108 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// KeyStoreClient is the client API for KeyStore service.
+// CAClient is the client API for CA service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type KeyStoreClient interface {
+type CAClient interface {
 	GetCert(ctx context.Context, in *GetCertRequest, opts ...grpc.CallOption) (*GetCertResponse, error)
 	SetCert(ctx context.Context, in *SetCertRequest, opts ...grpc.CallOption) (*SetCertResponse, error)
 }
 
-type keyStoreClient struct {
+type cAClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewKeyStoreClient(cc grpc.ClientConnInterface) KeyStoreClient {
-	return &keyStoreClient{cc}
+func NewCAClient(cc grpc.ClientConnInterface) CAClient {
+	return &cAClient{cc}
 }
 
-func (c *keyStoreClient) GetCert(ctx context.Context, in *GetCertRequest, opts ...grpc.CallOption) (*GetCertResponse, error) {
+func (c *cAClient) GetCert(ctx context.Context, in *GetCertRequest, opts ...grpc.CallOption) (*GetCertResponse, error) {
 	out := new(GetCertResponse)
-	err := c.cc.Invoke(ctx, "/protos.KeyStore/getCert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/protos.CA/getCert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *keyStoreClient) SetCert(ctx context.Context, in *SetCertRequest, opts ...grpc.CallOption) (*SetCertResponse, error) {
+func (c *cAClient) SetCert(ctx context.Context, in *SetCertRequest, opts ...grpc.CallOption) (*SetCertResponse, error) {
 	out := new(SetCertResponse)
-	err := c.cc.Invoke(ctx, "/protos.KeyStore/setCert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/protos.CA/setCert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// KeyStoreServer is the server API for KeyStore service.
-type KeyStoreServer interface {
+// CAServer is the server API for CA service.
+type CAServer interface {
 	GetCert(context.Context, *GetCertRequest) (*GetCertResponse, error)
 	SetCert(context.Context, *SetCertRequest) (*SetCertResponse, error)
 }
 
-// UnimplementedKeyStoreServer can be embedded to have forward compatible implementations.
-type UnimplementedKeyStoreServer struct {
+// UnimplementedCAServer can be embedded to have forward compatible implementations.
+type UnimplementedCAServer struct {
 }
 
-func (*UnimplementedKeyStoreServer) GetCert(context.Context, *GetCertRequest) (*GetCertResponse, error) {
+func (*UnimplementedCAServer) GetCert(context.Context, *GetCertRequest) (*GetCertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCert not implemented")
 }
-func (*UnimplementedKeyStoreServer) SetCert(context.Context, *SetCertRequest) (*SetCertResponse, error) {
+func (*UnimplementedCAServer) SetCert(context.Context, *SetCertRequest) (*SetCertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetCert not implemented")
 }
 
-func RegisterKeyStoreServer(s *grpc.Server, srv KeyStoreServer) {
-	s.RegisterService(&_KeyStore_serviceDesc, srv)
+func RegisterCAServer(s *grpc.Server, srv CAServer) {
+	s.RegisterService(&_CA_serviceDesc, srv)
 }
 
-func _KeyStore_GetCert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _CA_GetCert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetCertRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyStoreServer).GetCert(ctx, in)
+		return srv.(CAServer).GetCert(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/protos.KeyStore/GetCert",
+		FullMethod: "/protos.CA/GetCert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyStoreServer).GetCert(ctx, req.(*GetCertRequest))
+		return srv.(CAServer).GetCert(ctx, req.(*GetCertRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KeyStore_SetCert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _CA_SetCert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetCertRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyStoreServer).SetCert(ctx, in)
+		return srv.(CAServer).SetCert(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/protos.KeyStore/SetCert",
+		FullMethod: "/protos.CA/SetCert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyStoreServer).SetCert(ctx, req.(*SetCertRequest))
+		return srv.(CAServer).SetCert(ctx, req.(*SetCertRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _KeyStore_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "protos.KeyStore",
-	HandlerType: (*KeyStoreServer)(nil),
+var _CA_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "protos.CA",
+	HandlerType: (*CAServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "getCert",
-			Handler:    _KeyStore_GetCert_Handler,
+			Handler:    _CA_GetCert_Handler,
 		},
 		{
 			MethodName: "setCert",
-			Handler:    _KeyStore_SetCert_Handler,
+			Handler:    _CA_SetCert_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

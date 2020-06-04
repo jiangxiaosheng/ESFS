@@ -17,13 +17,14 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 )
 
 /**
 @params: bits为生成密钥的长度，默认采用1024位
 @return: 生成密钥对文件
 */
-func GenerateRSAKey(bits int) error {
+func GenerateRSAKey(bits int, dir, username string) error {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
 		return err
@@ -34,10 +35,11 @@ func GenerateRSAKey(bits int) error {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: derStream,
 	}
-	file, err := os.Create("private.pem")
+	file, err := os.Create(path.Join(dir, username+"private.pem"))
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	err = pem.Encode(file, block)
 
 	if err != nil {
@@ -54,7 +56,7 @@ func GenerateRSAKey(bits int) error {
 		Type:  "PUBLIC KEY",
 		Bytes: derPKIX,
 	}
-	file, err = os.Create("public.pem")
+	file, err = os.Create(path.Join(dir, username+"public.pem"))
 	if err != nil {
 		return err
 	}
@@ -63,6 +65,7 @@ func GenerateRSAKey(bits int) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	return nil
 }

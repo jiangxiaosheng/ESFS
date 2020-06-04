@@ -41,6 +41,18 @@ func GetFileHandleClient() (protos.FileHandleClient, *grpc.ClientConn, error) {
 	return c, conn, nil
 }
 
+func GetCAClient() (protos.CAClient, *grpc.ClientConn, error) {
+	addr := fmt.Sprintf("%s:%d", "0.0.0.0", 9015)
+	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Printf("无法建立grpc连接 %v", err.Error())
+		return nil, conn, err
+	}
+
+	c := protos.NewCAClient(conn)
+	return c, conn, nil
+}
+
 func GetUserPrivateKey() *rsa.PrivateKey {
 	keyPath := path.Join(common.BaseDir, "client", "keys", "private.pem")
 	key := utils.GetPrivateKeyFromFile(keyPath)

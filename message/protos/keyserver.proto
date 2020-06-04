@@ -8,7 +8,7 @@ option java_package = "esfs.keyserver";
 option java_outer_classname = "KeyserverProto";
 
 
-service KeyStore {
+service CA {
     rpc getCert(GetCertRequest) returns (GetCertResponse) {}
     rpc setCert(SetCertRequest) returns (SetCertResponse) {}
 }

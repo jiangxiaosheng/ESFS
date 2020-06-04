@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenKeys(t *testing.T) {
-	utils.GenerateRSAKey(1024)
+	utils.GenerateRSAKey(1024, "./", "")
 }
 
 func TestDS(t *testing.T) {

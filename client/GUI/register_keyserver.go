@@ -1,19 +1,25 @@
 package GUI
 
 import (
+	"ESFS2.0/client/common"
+	"ESFS2.0/message/protos"
+	"ESFS2.0/utils"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"log"
+	"time"
 )
 
 type MyKeyserverRegisterWindow struct {
 	*walk.MainWindow
 	username    *walk.LineEdit
-	selectcer   *walk.LineEdit
+	selectpub   *walk.LineEdit
 	generatecer *walk.LineEdit
 }
 
-func kregist() {}
 func CreateKeyServerWindow() {
 	mw := &MyKeyserverRegisterWindow{}
 	if err := (MainWindow{
@@ -34,41 +40,28 @@ func CreateKeyServerWindow() {
 			GroupBox{
 				Layout: HBox{},
 				Children: []Widget{
-					Label{
-						Text: "选择路径",
-					},
 					LineEdit{
-						AssignTo: &mw.selectcer,
+						AssignTo: &mw.selectpub,
+						ReadOnly: true,
 					},
 					PushButton{
-						Text: "选择证书",
+						Text: "选择公钥文件",
 						OnClicked: func() {
-							mw.SelectCer() //TODO:选择证书
-						},
-					},
-				},
-			},
-			GroupBox{
-				Layout: HBox{},
-				Children: []Widget{
-					Label{
-						Text: "选择路径",
-					},
-					LineEdit{
-						AssignTo: &mw.generatecer,
-					},
-					PushButton{
-						Text: "生成证书",
-						OnClicked: func() {
-							mw.GenerateCer() //TODO:生成证书
+							mw.SelectPub() //TODO:选择证书
 						},
 					},
 				},
 			},
 			PushButton{
+				Text: "生成RSA密钥对",
+				OnClicked: func() {
+					mw.GenerateKey() //TODO:生成证书
+				},
+			},
+			PushButton{
 				Text: "注册",
 				OnClicked: func() {
-					//kregist()//TODO:keyserver注册
+					mw.registerInCA() //TODO:keyserver注册
 				},
 			},
 		},
@@ -77,29 +70,87 @@ func CreateKeyServerWindow() {
 	}
 }
 
-func (mw *MyKeyserverRegisterWindow) SelectCer() {
+/**
+@author yyx
+*/
+func (mw *MyKeyserverRegisterWindow) SelectPub() {
 	Dlg := new(walk.FileDialog)
-	Dlg.Title = "选择证书"
-	Dlg.Filter = "Certificate File(*.cer)|*.cer" //
+	Dlg.Title = "选择公钥文件位置"
+	Dlg.Filter = "Certificate File(*.pem)|*.pem" //
 	if ok, err := Dlg.ShowOpen(mw); err != nil || !ok {
-		mw.selectcer.SetText("")
+		mw.selectpub.SetText("")
 		return
 	} else {
-		mw.selectcer.SetText(Dlg.FilePath)
+		mw.selectpub.SetText(Dlg.FilePath)
 		return
 	}
 }
 
-func (mw *MyKeyserverRegisterWindow) GenerateCer() {
-	Dlg := new(walk.FileDialog)
-	Dlg.Title = "选择生成路径"
-	Dlg.Filter = "Certificate File(*.cer)|*.cer" //
-	Dlg.InitialDirPath = "Default"
-	if ok, err := Dlg.ShowSave(mw); err != nil || !ok {
-		mw.selectcer.SetText("")
+/**
+@author yyx
+*/
+func (mw *MyKeyserverRegisterWindow) GenerateKey() {
+	if mw.username.Text() == "" {
+		common.ShowMsgBox("提示", "请输入用户名")
 		return
-	} else {
-		mw.selectcer.SetText(Dlg.FilePath)
+	}
+
+	dlg := new(walk.FileDialog)
+	dlg.Title = "选择密钥对的保存位置"
+	dlg.InitialDirPath = "Default"
+	if ok, err := dlg.ShowBrowseFolder(mw); err != nil {
+		log.Print(err)
+	} else if ok == true {
+		err = utils.GenerateRSAKey(1024, dlg.FilePath, mw.username.Text())
+		if err != nil {
+			log.Println(err)
+			common.ShowMsgBox("提示", "生成密钥对出错")
+			return
+		}
+		common.ShowMsgBox("提示", "生成密钥对成功")
+		log.Println(dlg.FilePath)
 	}
 	return
+}
+
+func (mw *MyKeyserverRegisterWindow) registerInCA() {
+	if mw.username.Text() == "" {
+		common.ShowMsgBox("提示", "请输入用户名")
+		return
+	}
+
+	if mw.selectpub.Text() == "" {
+		common.ShowMsgBox("提示", "请选择公钥文件")
+		return
+	}
+
+	pubKey := utils.GetPublicKeyFromFile(mw.selectpub.Text())
+	if pubKey == nil {
+		common.ShowMsgBox("提示", "解析公钥文件失败")
+		return
+	}
+
+	serializedData, err := json.Marshal(pubKey)
+	if err != nil {
+		common.ShowMsgBox("提示", "程序错误")
+		return
+	}
+
+	//grpc发送请求
+	c, conn, err := common.GetCAClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	request := &protos.SetCertRequest{
+		Username: mw.username.Text(),
+		Content:  serializedData,
+	}
+
+	response, err := c.SetCert(ctx, request)
+
 }
