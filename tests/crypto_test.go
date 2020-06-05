@@ -33,3 +33,9 @@ func TestAES(t *testing.T) {
 	b = append(b, a...)
 	println(b)
 }
+
+func TestPubKey(t *testing.T) {
+	dir := "E:\\GoLand\\GoLand 2019.3.3\\codes\\src\\ESFS2.0\\public.pem"
+	publicKey := utils.GetPublicKeyFromFile(dir)
+	fmt.Println(publicKey.N)
+}

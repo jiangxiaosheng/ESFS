@@ -6,6 +6,7 @@ import (
 	"ESFS2.0/utils"
 	"context"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"log"
 	"path"
@@ -62,14 +63,40 @@ func (s *keyServer) SetCert(ctx context.Context, req *protos.SetCertRequest) (*p
 		return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_USER_ALREADY_EXISTS}, nil
 	}
 
-	sql = fmt.Sprintf("insert into cert values('%s','%s')", req.Username, req.Content)
+	priKey := getKeyServerPrivateKey()
+	if priKey == nil {
+		return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
+	}
+	userPubKey := &rsa.PublicKey{}
+	err = json.Unmarshal(req.Content, userPubKey)
+	if err != nil {
+		return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
+	}
+
+	cert, err := utils.GenerateCertToBytes(req.Username, userPubKey, priKey)
+	if err != nil {
+		return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, err
+	}
+
+	sql = fmt.Sprintf("insert into cert values('%s','%s')", req.Username, cert)
 	_, err = common.DoExecTx(sql, db)
 	if err != nil {
 		log.Printf("数据库事务执行失败 %v", err.Error())
 		return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_SERVER_ERROR}, nil
 	}
-	return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_OK}, nil
+	return &protos.SetCertResponse{ErrorMessage: protos.ErrorMessage_OK, CertData: cert}, nil
+}
 
+func (s *keyServer) GetCAPublicKey(ctx context.Context, req *protos.GetCAPublicKeyRequest) (*protos.GetCAPublicKeyResponse, error) {
+	serializedData, err := json.Marshal(getKeyServerPublicKey())
+	if err != nil {
+		return &protos.GetCAPublicKeyResponse{
+			Data: nil,
+		}, err
+	}
+	return &protos.GetCAPublicKeyResponse{
+		Data: serializedData,
+	}, nil
 }
 
 func getKeyServerPublicKey() *rsa.PublicKey {

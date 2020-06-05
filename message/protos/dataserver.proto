@@ -19,6 +19,7 @@ enum ErrorMessage {
   USER_ALREADY_EXISTS = 3;
   SERVER_ERROR = 4;
   NO_CERTIFICATE = 5;
+  CERTIFICATE_INVALID = 6;
 }
 
 message LoginRequest {
@@ -35,6 +36,7 @@ message RegisterRequest {
   string username = 1;
   string password = 2;
   string defaultSecondKey = 3;
+  bytes certData = 4;
 }
 
 message RegisterResponse {

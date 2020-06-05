@@ -136,17 +136,15 @@ func GetPrivateKeyFromFile(filename string) *rsa.PrivateKey {
 func GetPublicKeyFromFile(filename string) *rsa.PublicKey {
 	file, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	defer file.Close()
 
 	buf := FileToBytes(file)
-
 	block, _ := pem.Decode(buf)
-
 	publicKeyInterface, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	return publicKeyInterface.(*rsa.PublicKey)
 }

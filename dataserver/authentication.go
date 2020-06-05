@@ -1,17 +1,21 @@
 package main
 
 import (
+	clicommon "ESFS2.0/client/common"
 	"ESFS2.0/keyserver/common"
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"context"
+	"crypto/rsa"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"path"
+	"time"
 )
 
 /**
@@ -86,6 +90,26 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 		}, nil
 	}
 
+	//验证证书
+	caPubKey := getCAPublicKey()
+	if caPubKey == nil {
+		return &protos.RegisterResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, nil
+	}
+	cert := &utils.Certificate{}
+	err = json.Unmarshal(req.CertData, cert)
+	if err != nil {
+		return &protos.RegisterResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, nil
+	}
+	if !utils.VerifyCert(cert, caPubKey) { //验证不通过
+		return &protos.RegisterResponse{
+			ErrorMessage: protos.ErrorMessage_CERTIFICATE_INVALID,
+		}, nil
+	}
+
 	username := req.Username
 	password := req.Password
 	defaultSecondKey := req.DefaultSecondKey
@@ -114,6 +138,32 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 	return &protos.RegisterResponse{
 		ErrorMessage: protos.ErrorMessage_OK,
 	}, nil
+}
+
+/**
+@author js
+*/
+func getCAPublicKey() *rsa.PublicKey {
+	c, conn, err := clicommon.GetCAClient()
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	request := &protos.GetCAPublicKeyRequest{}
+	response, err := c.GetCAPublicKey(ctx, request)
+	if err != nil {
+		return nil
+	}
+	caPubKey := &rsa.PublicKey{}
+	err = json.Unmarshal(response.Data, caPubKey)
+	if err != nil {
+		return nil
+	}
+	return caPubKey
 }
 
 /**

@@ -72,40 +72,40 @@ func GenerateCertToFile(username string, pubkey *rsa.PublicKey, priKey *rsa.Priv
 /**
 @author js
 */
-func GenerateCertToBytes(username string, pubkey *rsa.PublicKey, priKey *rsa.PrivateKey) ([]byte, error) {
-	cert_info := CertInfo{
+func GenerateCertToBytes(username string, pubKey *rsa.PublicKey, priKey *rsa.PrivateKey) ([]byte, error) {
+	certInfo := CertInfo{
 		Username:  username,
-		PublicKey: *pubkey,
+		PublicKey: *pubKey,
 	}
 
-	serialized_key, err := json.Marshal(cert_info) //序列化用户信息
+	serializedKey, err := json.Marshal(certInfo) //序列化用户信息
 	if err != nil {
-		log.Fatal("序列化失败 %v", err.Error())
+		log.Printf("序列化失败 %v", err.Error())
 		return nil, err
 	}
-	sig, err := GenerateDS(serialized_key, priKey) //生成数字签名
+	sig, err := GenerateDS(serializedKey, priKey) //生成数字签名
 	if err != nil {
 		log.Printf("生成数字签名失败 %v", err.Error())
 		return nil, err
 	}
 	cert := Certificate{
-		Info: cert_info,
+		Info: certInfo,
 		Sig:  base64.URLEncoding.EncodeToString(sig),
 	}
 
-	serialized_cert, err := json.Marshal(cert) //序列化Certificate
+	serializedCert, err := json.Marshal(cert) //序列化Certificate
 	if err != nil {
-		log.Fatal("序列化失败 %v", err.Error())
+		log.Printf("序列化失败 %v", err.Error())
 		return nil, err
 	}
 
 	//var headers = make(map[string]string)
 	//headers["username"] = username
-	//headers["publickey"] = base64.URLEncoding.EncodeToString(pubkey.N.Bytes())
+	//headers["publickey"] = base64.URLEncoding.EncodeToString(pubKey.N.Bytes())
 	block := &pem.Block{
 		Type: "CERTIFICATE",
 		//Headers: headers,
-		Bytes: serialized_cert,
+		Bytes: serializedCert,
 	}
 	b := pem.EncodeToMemory(block)
 	return b, nil
@@ -115,17 +115,17 @@ func GenerateCertToBytes(username string, pubkey *rsa.PublicKey, priKey *rsa.Pri
 从证书文件读取Certificate
 */
 func ReadCertFromFile(path string) (*Certificate, error) {
-	encoded_cert, err := ioutil.ReadFile(path)
+	encodedCert, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatal("证书格式错误 %v", err.Error())
+		log.Printf("证书格式错误 %v", err.Error())
 		return nil, err
 	}
-	block, _ := pem.Decode(encoded_cert)
+	block, _ := pem.Decode(encodedCert)
 
 	cert := &Certificate{}
 	err = json.Unmarshal(block.Bytes, cert)
 	if err != nil {
-		log.Fatal("序列化失败 %v", err.Error())
+		log.Printf("序列化失败 %v", err.Error())
 		return nil, err
 	}
 	return cert, nil
@@ -144,4 +144,20 @@ func ReadCertFromBytes(source []byte) (*Certificate, error) {
 		return nil, err
 	}
 	return cert, nil
+}
+
+/**
+@author js
+验证证书
+*/
+func VerifyCert(cert *Certificate, pubKey *rsa.PublicKey) bool {
+	sig, err := base64.URLEncoding.DecodeString(cert.Sig)
+	if err != nil {
+		return false
+	}
+	serializedData, err := json.Marshal(cert.Info)
+	if err != nil {
+		return false
+	}
+	return VerifyDS(sig, serializedData, pubKey)
 }

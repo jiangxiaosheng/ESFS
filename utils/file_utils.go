@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"crypto/rsa"
 	"fmt"
 	"github.com/archivefile/zip"
 	"io/ioutil"
@@ -102,19 +101,6 @@ func ReadFiles(dir string, fileArr *[]*os.File) {
 		panic(err)
 	}
 	return
-}
-
-/**
-TODO:不能用，想写一个
-*/
-func UploadFiles(path string, priKey *rsa.PrivateKey, secondKey string) {
-	files := new([]*os.File)
-	ReadFiles(path, files)
-	//comFile, _ := Compress(*files, "test.zip")
-	//fmt.Println(comFile.Name())
-	for _, i := range *files {
-		fmt.Println(i.Name())
-	}
 }
 
 /**

@@ -11,6 +11,7 @@ option java_outer_classname = "KeyserverProto";
 service CA {
     rpc getCert(GetCertRequest) returns (GetCertResponse) {}
     rpc setCert(SetCertRequest) returns (SetCertResponse) {}
+    rpc getCAPublicKey(GetCAPublicKeyRequest) returns (GetCAPublicKeyResponse) {}
 }
 
 message GetCertRequest {
@@ -29,4 +30,12 @@ message SetCertRequest {
 
 message SetCertResponse {
     ErrorMessage errorMessage = 1;
+    bytes certData = 2;
+}
+
+message GetCAPublicKeyRequest {
+}
+
+message GetCAPublicKeyResponse {
+    bytes data = 1;
 }
