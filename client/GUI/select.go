@@ -6,6 +6,7 @@ import (
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
@@ -178,6 +179,12 @@ func GetSelectPage() []Widget {
 					},
 				},
 				PushButton{
+					Text: "共享",
+					OnClicked: func() {
+						share(mw)
+					},
+				},
+				PushButton{
 					Text: "登出",
 					OnClicked: func() {
 						logout()
@@ -229,6 +236,52 @@ func GetSelectPage() []Widget {
 	mw.MainWindow.Close()
 
 	return a
+}
+
+func getUserPublicKey(username string) (*rsa.PublicKey, protos.ErrorMessage) {
+	c, conn, err := clicommon.GetCAClient()
+	if err != nil {
+		log.Println(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	request := &protos.GetCertRequest{
+		Username: username,
+	}
+	response, err := c.GetCert(ctx, request)
+	switch response.ErrorMessage {
+	case protos.ErrorMessage_SERVER_ERROR:
+		return nil, response.ErrorMessage
+	case protos.ErrorMessage_USER_NOT_EXISTS:
+		return nil, response.ErrorMessage
+	case protos.ErrorMessage_OK:
+		cert := &utils.Certificate{}
+		err = json.Unmarshal(response.Content, cert)
+		request := &protos.GetCAPublicKeyRequest{}
+		response, err := c.GetCAPublicKey(ctx, request)
+		if err != nil {
+			return nil, response.Err
+		}
+		caPubKey := &rsa.PublicKey{}
+		err = json.Unmarshal(response.Data, caPubKey)
+		if err != nil {
+			return nil
+		}
+
+		utils.VerifyCert(cert)
+		if err != nil {
+			return nil, response.ErrorMessage
+		}
+		return &cert.Info.PublicKey, response.ErrorMessage
+	}
+
+}
+
+func share(mw *FileMainWindow) {
+	//dlg := new(walk.Dialog)
+	//dlg.
 }
 
 func selectDownloadFile(mw *FileMainWindow) {

@@ -39,15 +39,15 @@ func (s *keyServer) GetCert(ctx context.Context, req *protos.GetCertRequest) (*p
 		content := new([]byte)
 		rows.Scan(content)
 
-		cert := &protos.GetCertResponse{
-			Content: *content,
-		}
-		return cert, nil
+		return &protos.GetCertResponse{
+			Content:      *content,
+			ErrorMessage: protos.ErrorMessage_OK,
+		}, nil
 	} else {
-		cert := &protos.GetCertResponse{
-			Content: nil,
-		}
-		return cert, nil
+		return &protos.GetCertResponse{
+			Content:      nil,
+			ErrorMessage: protos.ErrorMessage_USER_NOT_EXISTS,
+		}, nil
 	}
 }
 
