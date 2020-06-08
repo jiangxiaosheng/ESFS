@@ -10,6 +10,27 @@ option java_outer_classname = "DataserverProto";
 service Authentication {
   rpc login(LoginRequest) returns (LoginResponse) {}
   rpc register(RegisterRequest) returns (RegisterResponse) {}
+  rpc checkUserExits(checkUserExistsRequest) returns (checkUserExistsResponse) {}
+  rpc getSecondKey(GetSecondKeyRequest) returns (GetSecondKeyResponse) {}
+}
+
+message GetSecondKeyRequest {
+  string username = 1;
+  repeated string filenames = 2;
+}
+
+message GetSecondKeyResponse {
+  ErrorMessage errorMessage = 1;
+  repeated string secondKeys = 2;
+}
+
+message checkUserExistsRequest {
+  string username = 1;
+}
+
+message checkUserExistsResponse {
+  ErrorMessage errorMessage = 1;
+  bool exists = 2;
 }
 
 enum ErrorMessage {

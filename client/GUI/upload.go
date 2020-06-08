@@ -100,6 +100,10 @@ func OpenWindow() {
 	mw.Run()
 }
 
+/**
+@author js
+上传指定文件到云上
+*/
 func upload(mw *MyMainWindow) {
 	if _notuseRadioButton.Checked() == true && mw.secondpw.Text() == "" {
 		clicommon.ShowMsgBox("提示", "请填写二级密码")

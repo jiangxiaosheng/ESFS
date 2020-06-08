@@ -142,6 +142,58 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 
 /**
 @author js
+获取某个用户指定文件的二级密码（可以为多个）
+*/
+func (s *dataServer) GetSecondKey(ctx context.Context, req *protos.GetSecondKeyRequest) (*protos.GetSecondKeyResponse, error) {
+	//db, err := common.GetDBConnection()
+	//if err != nil {
+	//	log.Printf("连接数据库失败 %v", err)
+	//	return &protos.GetSecondKeyResponse{
+	//		ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+	//		SecondKeys:   nil,
+	//	}, err
+	//}
+	//ranges := fmt.Sprintf()
+	//req.Filenames
+}
+
+/**
+@author js
+查询用户是否存在
+*/
+func (s *dataServer) CheckUserExits(ctx context.Context, req *protos.CheckUserExistsRequest) (*protos.CheckUserExistsResponse, error) {
+	db, err := common.GetDBConnection()
+	if err != nil {
+		log.Printf("连接数据库失败 %v", err.Error())
+		return &protos.CheckUserExistsResponse{
+			Exists:       false,
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, err
+	}
+
+	sql := fmt.Sprintf("select * from users where username='%s'", req.Username)
+	rows, err := common.DoQuery(sql, db)
+	if err != nil {
+		log.Printf("查询数据库失败 %v", err.Error())
+		return &protos.CheckUserExistsResponse{
+			Exists:       false,
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, err
+	}
+	if rows.Next() {
+		return &protos.CheckUserExistsResponse{
+			Exists:       true,
+			ErrorMessage: protos.ErrorMessage_OK,
+		}, nil
+	}
+	return &protos.CheckUserExistsResponse{
+		Exists:       false,
+		ErrorMessage: protos.ErrorMessage_OK,
+	}, nil
+}
+
+/**
+@author js
 */
 func getCAPublicKey() *rsa.PublicKey {
 	c, conn, err := clicommon.GetCAClient()

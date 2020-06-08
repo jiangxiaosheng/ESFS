@@ -6,7 +6,6 @@ import (
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"context"
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"github.com/lxn/walk"
@@ -181,7 +180,7 @@ func GetSelectPage() []Widget {
 				PushButton{
 					Text: "共享",
 					OnClicked: func() {
-						share(mw)
+						CreateShareWindow(mw)
 					},
 				},
 				PushButton{
@@ -238,52 +237,6 @@ func GetSelectPage() []Widget {
 	return a
 }
 
-func getUserPublicKey(username string) (*rsa.PublicKey, protos.ErrorMessage) {
-	c, conn, err := clicommon.GetCAClient()
-	if err != nil {
-		log.Println(err)
-	}
-	defer conn.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	request := &protos.GetCertRequest{
-		Username: username,
-	}
-	response, err := c.GetCert(ctx, request)
-	switch response.ErrorMessage {
-	case protos.ErrorMessage_SERVER_ERROR:
-		return nil, response.ErrorMessage
-	case protos.ErrorMessage_USER_NOT_EXISTS:
-		return nil, response.ErrorMessage
-	case protos.ErrorMessage_OK:
-		cert := &utils.Certificate{}
-		err = json.Unmarshal(response.Content, cert)
-		request := &protos.GetCAPublicKeyRequest{}
-		response, err := c.GetCAPublicKey(ctx, request)
-		if err != nil {
-			return nil, response.Err
-		}
-		caPubKey := &rsa.PublicKey{}
-		err = json.Unmarshal(response.Data, caPubKey)
-		if err != nil {
-			return nil
-		}
-
-		utils.VerifyCert(cert)
-		if err != nil {
-			return nil, response.ErrorMessage
-		}
-		return &cert.Info.PublicKey, response.ErrorMessage
-	}
-
-}
-
-func share(mw *FileMainWindow) {
-	//dlg := new(walk.Dialog)
-	//dlg.
-}
-
 func selectDownloadFile(mw *FileMainWindow) {
 	dlg := new(walk.FileDialog)
 	dlg.Title = "选择文件"
@@ -299,6 +252,10 @@ func selectDownloadFile(mw *FileMainWindow) {
 	}
 }
 
+/**
+@author js
+下载云上文件
+*/
 func download(mw *FileMainWindow, dir string) {
 	fileItems := mw.model.items
 	var filesToDownload []string
@@ -308,7 +265,7 @@ func download(mw *FileMainWindow, dir string) {
 		}
 	}
 
-	//使用grpc获取文件-二级密码map
+	//1.使用grpc获取文件-二级密码map
 	c, conn, err := clicommon.GetFileHandleClient()
 	if err != nil {
 		fmt.Println(err)
@@ -335,6 +292,7 @@ func download(mw *FileMainWindow, dir string) {
 		return
 	}
 
+	//2.获取当前用户的私钥，用来后续解密文件
 	priKey := clicommon.GetUserPrivateKey()
 	if priKey == nil {
 		log.Printf("读取私钥失败 %v", err.Error())
@@ -342,6 +300,7 @@ func download(mw *FileMainWindow, dir string) {
 		return
 	}
 
+	//3.建立socket连接，开始传输数据，这部分的实现比较tricky，可以不用深入研究
 	msg := message.FileSocketMessage{
 		UserName: CurrentUser,
 		FileName: filesToDownload,
@@ -391,12 +350,14 @@ func download(mw *FileMainWindow, dir string) {
 			}
 			socketConn.Write([]byte{1})
 		}
+		//获得加密文件时用的会话密钥
 		key, err := utils.GenerateSessionKeyWithSecondKey(m[filename], priKey)
 		if err != nil {
 			log.Printf("生成会话密钥失败 %v", err.Error())
 			clicommon.ShowMsgBox("提示", "服务器错误")
 			return
 		}
+		//使用会话密钥解密云上文件
 		err = utils.AESDecryptToFile(encryptedData, key, path.Join(dir, filename))
 		if err != nil {
 			clicommon.ShowMsgBox("提示", "服务器错误")
@@ -405,6 +366,7 @@ func download(mw *FileMainWindow, dir string) {
 
 		socketConn.Write([]byte{1})
 
+		//下载签名文件，用来进行认证
 		sigFile, err := os.Create(path.Join(dir, "."+filename+".sig"))
 		if err != nil {
 			log.Printf("签名文件创建失败 %v", err.Error())
@@ -450,6 +412,10 @@ func (mw *FileMainWindow) tvItemActivated() {
 	walk.MsgBox(mw, "title", msg, walk.MsgBoxIconInformation)
 }
 
+/**
+@author js
+删除服务器上的指定文件
+*/
 func removeFiles(mw *FileMainWindow) {
 	fileItems := mw.model.items
 	var filesToRemove []string
