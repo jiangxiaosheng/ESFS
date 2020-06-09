@@ -2,6 +2,7 @@ package main
 
 import (
 	clicommon "ESFS2.0/client/common"
+	datacommon "ESFS2.0/dataserver/common"
 	"ESFS2.0/keyserver/common"
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
@@ -141,20 +142,72 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 }
 
 /**
-@author js
+@author yyx
 获取某个用户指定文件的二级密码（可以为多个）
 */
 func (s *dataServer) GetSecondKey(ctx context.Context, req *protos.GetSecondKeyRequest) (*protos.GetSecondKeyResponse, error) {
-	//db, err := common.GetDBConnection()
-	//if err != nil {
-	//	log.Printf("连接数据库失败 %v", err)
-	//	return &protos.GetSecondKeyResponse{
-	//		ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
-	//		SecondKeys:   nil,
-	//	}, err
-	//}
-	//ranges := fmt.Sprintf()
-	//req.Filenames
+	db, err := common.GetDBConnection()
+	if err != nil {
+		log.Printf("连接数据库失败 %v", err)
+		return &protos.GetSecondKeyResponse{
+			ErrorMessage:      protos.ErrorMessage_SERVER_ERROR,
+			SecondKeysMapData: nil,
+		}, err
+	}
+	//查询用户是否存在
+	sql := fmt.Sprintf("select * from users where username='%s'", req.Username)
+	res, err := common.DoQuery(sql, db)
+	if err != nil {
+		log.Printf("查询数据库失败 %v", err)
+		return &protos.GetSecondKeyResponse{
+			ErrorMessage:      protos.ErrorMessage_SERVER_ERROR,
+			SecondKeysMapData: nil,
+		}, err
+	}
+
+	if !res.Next() {
+		return &protos.GetSecondKeyResponse{
+			ErrorMessage:      protos.ErrorMessage_USER_NOT_EXISTS,
+			SecondKeysMapData: nil,
+		}, err
+	}
+
+	ranges := ""
+	for i, name := range req.Filenames {
+		ranges += fmt.Sprintf("'%s'", name)
+		if i != len(req.Filenames)-1 {
+			ranges += ","
+		}
+	}
+	sql = fmt.Sprintf("select filename,secondKey from metadata where username='%s' and filename in (%s)", req.Username, ranges)
+	res, err = datacommon.DoQuery(sql, db)
+	if err != nil {
+		log.Printf("查询数据库失败 %v", err)
+		return &protos.GetSecondKeyResponse{
+			ErrorMessage:      protos.ErrorMessage_SERVER_ERROR,
+			SecondKeysMapData: nil,
+		}, err
+	}
+
+	m := make(map[string]string)
+	var filename, secondkey string
+	for res.Next() {
+		res.Scan(&filename, &secondkey)
+		m[filename] = secondkey
+	}
+	serializedData, err := json.Marshal(m)
+	if err != nil {
+		log.Printf("序列化失败 %v", err)
+		return &protos.GetSecondKeyResponse{
+			ErrorMessage:      protos.ErrorMessage_SERVER_ERROR,
+			SecondKeysMapData: nil,
+		}, err
+	}
+
+	return &protos.GetSecondKeyResponse{
+		ErrorMessage:      protos.ErrorMessage_OK,
+		SecondKeysMapData: serializedData,
+	}, nil
 }
 
 /**

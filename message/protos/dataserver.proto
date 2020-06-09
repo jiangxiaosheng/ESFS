@@ -21,7 +21,7 @@ message GetSecondKeyRequest {
 
 message GetSecondKeyResponse {
   ErrorMessage errorMessage = 1;
-  repeated string secondKeys = 2;
+  bytes secondKeysMapData = 2;
 }
 
 message checkUserExistsRequest {

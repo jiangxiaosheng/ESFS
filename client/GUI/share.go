@@ -5,7 +5,6 @@ import (
 	"ESFS2.0/message/protos"
 	"ESFS2.0/utils"
 	"context"
-	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
@@ -72,8 +71,40 @@ func share(father *FileMainWindow, mw *MyShareWindow) {
 
 }
 
+/**
+@author yyx
+返回文件名-二级密码映射
+*/
 func getSecondKeys(username string, filenames []string) (map[string]string, error) {
+	c, conn, err := clicommon.GetAuthenticationClient()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
+	request := &protos.GetSecondKeyRequest{
+		Username:  username,
+		Filenames: filenames,
+	}
+
+	response, err := c.GetSecondKey(ctx, request)
+	switch response.ErrorMessage {
+	case protos.ErrorMessage_SERVER_ERROR:
+		return nil, errors.New("server_error")
+	case protos.ErrorMessage_USER_NOT_EXISTS:
+		return nil, errors.New("username_not_exist")
+	case protos.ErrorMessage_OK:
+		var fsmap = make(map[string]string)
+		err = json.Unmarshal(response.SecondKeysMapData, fsmap)
+		if err != nil {
+			return nil, err
+		}
+		return fsmap, nil
+	}
+	return nil, nil
 }
 
 /**
