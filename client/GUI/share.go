@@ -65,9 +65,18 @@ func share(father *FileMainWindow, mw *MyShareWindow) {
 		clicommon.ShowMsgBox("提示", "用户不存在")
 		return
 	}
+	//TODO 这里是hard code私钥文件路径的，后面可以进行配置
 	//priKey := clicommon.GetUserPrivateKey()
 
-	//rsa.EncryptPKCS1v15(rand.Reader, key, data)
+	//1.获取文件名-二级密码映射
+
+	//2.用私钥和这些二级密码分别生成多个会话密钥
+
+	//3.获取需要分享的用户的公钥，这个函数下面写好了
+
+	//4.用该公钥加密这些会话密钥
+
+	//5.加密结果存在access表中
 
 }
 
