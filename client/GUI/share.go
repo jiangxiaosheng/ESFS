@@ -68,15 +68,63 @@ func share(father *FileMainWindow, mw *MyShareWindow) {
 	//TODO 这里是hard code私钥文件路径的，后面可以进行配置
 	//priKey := clicommon.GetUserPrivateKey()
 
+	//获取选中文件
+	fileItems := father.model.items
+	var filesToShared []string
+	for _, fileRecord := range fileItems {
+		if fileRecord.checked {
+			filesToShared = append(filesToShared, fileRecord.Name)
+		}
+	}
+	for _, i := range filesToShared {
+		fmt.Printf("file:" + i + "\n")
+	}
 	//1.获取文件名-二级密码映射
-
+	var SecondKeys map[string]string
+	SecondKeys, err = getSecondKeys(CurrentUser, filesToShared)
+	if err != nil {
+		log.Println(err)
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+	for _, i := range SecondKeys {
+		fmt.Printf("SecondKeys:" + i + "\n")
+	}
+	fmt.Printf("11111")
 	//2.用私钥和这些二级密码分别生成多个会话密钥
+	var sharedKeys []string
+	var tmp []byte
+	privateKey := clicommon.GetUserPrivateKey()
 
-	//3.获取需要分享的用户的公钥，这个函数下面写好了
-
-	//4.用该公钥加密这些会话密钥
+	for _, SecondKey := range SecondKeys {
+		tmp, err = utils.GenerateSessionKeyWithSecondKey(SecondKey, privateKey)
+		if err != nil {
+			log.Println(err)
+			clicommon.ShowMsgBox("提示", "服务器错误")
+		}
+		sharedKeys = append(sharedKeys, string(tmp))
+	}
+	////3.获取需要分享的用户的公钥，这个函数下面写好了
+	//var userPublicKey *rsa.PublicKey
+	//userPublicKey, _ = getUserPublicKey(mw.shareName.Text())
+	//
+	////4.用该公钥加密这些会话密钥
+	//var encryptedKeys []string
+	//for _, key := range sharedKeys {
+	//	tmp, err := utils.PublickeyEncrypt([]byte(key), userPublicKey)
+	//	if err != nil {
+	//		log.Println(err)
+	//		clicommon.ShowMsgBox("提示", "服务器错误")
+	//	}
+	//	encryptedKeys = append(encryptedKeys, string(tmp))
+	//}
 
 	//5.加密结果存在access表中
+	//err = saveSharedResults(mw.shareName.Text(), filesToShared, CurrentUser, encryptedKeys)
+	//if err != nil {
+	//	return err
+	//}
+	//return nil
 
 }
 
@@ -107,7 +155,7 @@ func getSecondKeys(username string, filenames []string) (map[string]string, erro
 		return nil, errors.New("username_not_exist")
 	case protos.ErrorMessage_OK:
 		var fsmap = make(map[string]string)
-		err = json.Unmarshal(response.SecondKeysMapData, fsmap)
+		err = json.Unmarshal(response.SecondKeysMapData, &fsmap)
 		if err != nil {
 			return nil, err
 		}

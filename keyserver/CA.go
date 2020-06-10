@@ -24,7 +24,7 @@ func (s *keyServer) GetCert(ctx context.Context, req *protos.GetCertRequest) (*p
 
 	username := req.Username
 
-	sql := fmt.Sprintf("select cert from cert where username='%s'", username)
+	sql := fmt.Sprintf("select cert_data from cert where username='%s'", username)
 	rows, err := common.DoQuery(sql, db)
 
 	if err != nil {

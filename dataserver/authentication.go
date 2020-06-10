@@ -142,6 +142,54 @@ func (s *dataServer) Register(ctx context.Context, req *protos.RegisterRequest) 
 }
 
 /**
+@author ytw
+加密结果存在access表中（可以为多个）
+*/
+func (s *dataServer) SaveSharedResult(ctx context.Context, req *protos.SaveSharedResultRequest) (*protos.SaveSharedResultResponse, error) {
+	db, err := common.GetDBConnection()
+	if err != nil {
+		log.Printf("连接数据库失败 %v", err)
+		return &protos.SaveSharedResultResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		}, err
+	}
+	//查询用户、对应共享文件是否存在
+	for i, filename := range req.Filenames {
+		sql := fmt.Sprintf("select * from users where username='%s' and filename='%s'", req.Username, filename)
+		res, err := common.DoQuery(sql, db)
+		if err != nil {
+			log.Printf("查询数据库失败 %v", err)
+			return &protos.SaveSharedResultResponse{
+				ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+			}, err
+		}
+		if res.Next() { //如果已存在
+			sql := fmt.Sprintf("update access set authorized_user='%s'and share_key='%s' "+
+				"where username='%s' and filename in '%s'", req.AuthorizedUsername, req.ShareKeys[i], req.Username, filename)
+			_, err := common.DoExecTx(sql, db)
+			if err != nil {
+				log.Printf("更新数据库失败 %v", err)
+				return &protos.SaveSharedResultResponse{
+					ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+				}, err
+			}
+		} else { //不存在
+			sql = fmt.Sprintf("insert into access values('%s','%s','%s','%s')", req.Username, filename, req.AuthorizedUsername, req.ShareKeys[i])
+			_, err := common.DoExecTx(sql, db)
+			if err != nil {
+				log.Printf("插入数据库失败 %v", err)
+				return &protos.SaveSharedResultResponse{
+					ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+				}, err
+			}
+		}
+	}
+	return &protos.SaveSharedResultResponse{
+		ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+	}, nil
+}
+
+/**
 @author yyx
 获取某个用户指定文件的二级密码（可以为多个）
 */
@@ -195,6 +243,7 @@ func (s *dataServer) GetSecondKey(ctx context.Context, req *protos.GetSecondKeyR
 		res.Scan(&filename, &secondkey)
 		m[filename] = secondkey
 	}
+	log.Println(m)
 	serializedData, err := json.Marshal(m)
 	if err != nil {
 		log.Printf("序列化失败 %v", err)

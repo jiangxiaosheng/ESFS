@@ -12,6 +12,18 @@ service Authentication {
   rpc register(RegisterRequest) returns (RegisterResponse) {}
   rpc checkUserExits(checkUserExistsRequest) returns (checkUserExistsResponse) {}
   rpc getSecondKey(GetSecondKeyRequest) returns (GetSecondKeyResponse) {}
+  rpc saveSharedResult(SaveSharedResultRequest) returns (SaveSharedResultResponse) {}
+}
+
+message SaveSharedResultRequest {
+  string username = 1;
+  repeated string filenames = 2;
+  string authorized_username = 3;
+  repeated string share_keys = 4;
+}
+
+message SaveSharedResultResponse {
+  ErrorMessage errorMessage = 1;
 }
 
 message GetSecondKeyRequest {

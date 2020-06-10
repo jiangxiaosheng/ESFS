@@ -71,6 +71,21 @@ func GenerateRSAKey(bits int, dir, username string) error {
 }
 
 /**
+@author ytw
+公钥加密
+@params:sourceData 源数据
+		key 公钥
+@returns:公钥加密后的string
+*/
+func PublickeyEncrypt(sourceData []byte, key *rsa.PublicKey) ([]byte, error) {
+	res, err := rsa.EncryptPKCS1v15(rand.Reader, key, sourceData)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+/**
 @author js
 随机生成字符串，用来作为salt
 */
