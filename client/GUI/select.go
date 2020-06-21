@@ -283,15 +283,27 @@ func selectDownloadFile(mw *FileMainWindow) {
 func download(mw *FileMainWindow, dir string) {
 	fileItems := mw.model.items
 	var filesToDownload []string
+	var filesToDownloadWithOwner []message.FileWithOwner
 	fileMap := make(map[string][]string)
+	inverseFileMap := make(map[string][]string) //文件名-所有者
+
 	for _, fileRecord := range fileItems {
 		if fileRecord.checked {
 			filesToDownload = append(filesToDownload, fileRecord.Name)
+			filesToDownloadWithOwner = append(filesToDownloadWithOwner, message.FileWithOwner{
+				Filename: fileRecord.Name,
+				Owner:    fileRecord.Owner,
+			})
 			if fileRecord.Owner != CurrentUser {
 				if fileMap[fileRecord.Owner] == nil {
 					fileMap[fileRecord.Owner] = make([]string, 0)
 				}
 				fileMap[fileRecord.Owner] = append(fileMap[fileRecord.Owner], fileRecord.Name)
+
+				if _, ok := inverseFileMap[fileRecord.Name]; !ok {
+					inverseFileMap[fileRecord.Name] = make([]string, 0)
+				}
+				inverseFileMap[fileRecord.Name] = append(inverseFileMap[fileRecord.Name], fileRecord.Owner)
 			}
 		}
 	}
@@ -353,9 +365,10 @@ func download(mw *FileMainWindow, dir string) {
 
 	//3.建立socket连接，开始传输数据，这部分的实现比较tricky，可以不用深入研究
 	msg := message.FileSocketMessage{
-		UserName: CurrentUser,
-		FileName: filesToDownload,
-		Type:     message.FILE_DOWNLOAD,
+		UserName:  CurrentUser,
+		FileName:  filesToDownload,
+		Type:      message.FILE_DOWNLOAD,
+		AddOnInfo: filesToDownloadWithOwner,
 	}
 	addr := "0.0.0.0:8959"
 	socketConn, err := net.Dial("tcp", addr)
@@ -381,7 +394,10 @@ func download(mw *FileMainWindow, dir string) {
 	socketConn.Read(buffer)
 	socketConn.Write([]byte{1})
 
-	for _, filename := range filesToDownload {
+	for _, fileWithOwner := range filesToDownloadWithOwner {
+		filename := fileWithOwner.Filename
+		owner := fileWithOwner.Owner
+
 		signal := &message.SignalOver{}
 		var encryptedData []byte
 		for {
@@ -401,18 +417,46 @@ func download(mw *FileMainWindow, dir string) {
 			}
 			socketConn.Write([]byte{1})
 		}
-		//获得加密文件时用的会话密钥
-		key, err := utils.GenerateSessionKeyWithSecondKey(m[filename], priKey)
-		if err != nil {
-			log.Printf("生成会话密钥失败 %v", err.Error())
-			clicommon.ShowMsgBox("提示", "服务器错误")
-			return
+		//判断该文件是用户自己的还是别人分享的,true是自己的,false是别人的
+		flag := true
+		_, ok := inverseFileMap[filename]
+		if ok {
+			for _, f := range inverseFileMap[filename] {
+				if f == filename {
+					flag = false
+					break
+				}
+			}
 		}
-		//使用会话密钥解密云上文件
-		err = utils.AESDecryptToFile(encryptedData, key, path.Join(dir, filename))
-		if err != nil {
-			clicommon.ShowMsgBox("提示", "服务器错误")
-			return
+
+		if flag { //如果是自己的
+			//获得加密文件时用的会话密钥
+			key, err := utils.GenerateSessionKeyWithSecondKey(m[filename], priKey)
+			if err != nil {
+				log.Printf("生成会话密钥失败 %v", err.Error())
+				clicommon.ShowMsgBox("提示", "服务器错误")
+				return
+			}
+			//使用会话密钥解密云上文件
+			err = utils.AESDecryptToFile(encryptedData, key, path.Join(dir, filename))
+			if err != nil {
+				clicommon.ShowMsgBox("提示", "服务器错误")
+				return
+			}
+		} else {
+			encryptedShareKey := accessMap[owner][filename]
+			log.Print(encryptedShareKey)
+			shareKey, err := utils.PriKeyDecrypt(encryptedShareKey, priKey)
+			if err != nil {
+				clicommon.ShowMsgBox("提示", "服务器错误")
+				return
+			}
+
+			err = utils.AESDecryptToFile(encryptedData, shareKey, path.Join(dir, filename))
+			if err != nil {
+				clicommon.ShowMsgBox("提示", "程序错误")
+				return
+			}
 		}
 
 		socketConn.Write([]byte{1})

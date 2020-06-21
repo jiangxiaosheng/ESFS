@@ -70,9 +70,12 @@ func fileSocketServer() {
 				//TODO
 				conn.Read(buffer)
 
-				filenames := msg.FileName
-				for _, filename := range filenames {
-					file, err := os.Open(path.Join(common.BaseDir, "dataserver", "data", msg.UserName, filename))
+				filenamesWithOwner := msg.AddOnInfo
+				for _, fileInfo := range filenamesWithOwner {
+					filename := fileInfo.Filename
+					owner := fileInfo.Owner
+
+					file, err := os.Open(path.Join(common.BaseDir, "dataserver", "data", owner, filename))
 					if err != nil {
 						log.Printf("打开文件失败 %v", err.Error())
 						return
@@ -101,7 +104,7 @@ func fileSocketServer() {
 					file.Close()
 					conn.Read(buffer) //防止粘包
 
-					sigFile, err := os.Open(path.Join(common.BaseDir, "dataserver", "data", msg.UserName, "."+filename+".sig"))
+					sigFile, err := os.Open(path.Join(common.BaseDir, "dataserver", "data", owner, "."+filename+".sig"))
 					if err != nil {
 						log.Printf("打开签名文件失败 %v", err.Error())
 						return

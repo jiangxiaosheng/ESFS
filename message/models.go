@@ -20,10 +20,16 @@ type FileInfo struct {
 	Owner   string
 }
 
+type FileWithOwner struct {
+	Filename string
+	Owner    string
+}
+
 type FileSocketMessage struct {
-	UserName string
-	FileName []string
-	Type     OpType
+	UserName  string
+	FileName  []string
+	Type      OpType
+	AddOnInfo []FileWithOwner
 }
 
 type SignalOver struct {

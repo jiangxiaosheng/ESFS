@@ -87,6 +87,21 @@ func PubKeyEncrypt(sourceData []byte, key *rsa.PublicKey) ([]byte, error) {
 
 /**
 @author js
+私钥解密
+@params:sourceData 源数据
+		key 私钥
+@returns:私钥解密后的[]byte
+*/
+func PriKeyDecrypt(sourceData []byte, key *rsa.PrivateKey) ([]byte, error) {
+	res, err := rsa.DecryptPKCS1v15(rand.Reader, key, sourceData)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+/**
+@author js
 随机生成字符串，用来作为salt
 */
 func GenerateRandomBytes(bits int) []byte {
