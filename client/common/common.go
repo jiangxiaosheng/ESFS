@@ -53,8 +53,10 @@ func GetCAClient() (protos.CAClient, *grpc.ClientConn, error) {
 	return c, conn, nil
 }
 
-func GetUserPrivateKey() *rsa.PrivateKey {
-	keyPath := path.Join(common.BaseDir, "client", "keys", "private.pem")
+func GetUserPrivateKey(Privatekeypath string) *rsa.PrivateKey {
+	keyPath := Privatekeypath
+	log.Println(keyPath)
+	//path.Join(common.BaseDir, "client", "keys", "private.pem")/*hard code version*/
 	key := utils.GetPrivateKeyFromFile(keyPath)
 	return key
 }

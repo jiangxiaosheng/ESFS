@@ -18,8 +18,8 @@ service Authentication {
 message SaveSharedResultRequest {
   string username = 1;
   repeated string filenames = 2;
-  string authorized_username = 3;
-  repeated string share_keys = 4;
+  string authorizedUsername = 3;
+  repeated bytes shareKeys = 4;
 }
 
 message SaveSharedResultResponse {
@@ -116,11 +116,13 @@ message UploadDSResponse {
 
 message DownloadPrepareRequest {
   string username = 1;
+  bytes fileMap = 2;
 }
 
 message DownloadPrepareResponse {
   ErrorMessage errorMessage = 1;
   bytes content = 2;
+  bytes otherFileMap = 3;
 }
 
 message RemoveFilesRequest {

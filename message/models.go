@@ -17,6 +17,7 @@ type FileInfo struct {
 	Mode    os.FileMode
 	Size    int64
 	ModTime time.Time
+	Owner   string
 }
 
 type FileSocketMessage struct {

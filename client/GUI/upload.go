@@ -170,7 +170,7 @@ func upload(mw *MyMainWindow) {
 			log.Println(defaultSecondKey)
 
 			//2.对文件进行AES加密，并生成签名信息
-			privateKey := clicommon.GetUserPrivateKey()
+			privateKey := clicommon.GetUserPrivateKey(Privatekeypath)
 			sessionKey, err := utils.GenerateSessionKeyWithSecondKey(defaultSecondKey, privateKey)
 			if err != nil {
 				log.Printf("服务器错误 %v", err.Error())
@@ -230,7 +230,7 @@ func upload(mw *MyMainWindow) {
 			}
 
 			//4.使用grpc服务传签名信息（因为签名数据不大，所以用grpc是没问题的）
-			sigData, err := utils.SignatureFile(file, clicommon.GetUserPrivateKey())
+			sigData, err := utils.SignatureFile(file, clicommon.GetUserPrivateKey(Privatekeypath))
 			if err != nil {
 				log.Printf("签名失败 %v", err.Error())
 				clicommon.ShowMsgBox("提示", "服务器错误")

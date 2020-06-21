@@ -155,7 +155,8 @@ func (s *dataServer) SaveSharedResult(ctx context.Context, req *protos.SaveShare
 	}
 	//查询用户、对应共享文件是否存在
 	for i, filename := range req.Filenames {
-		sql := fmt.Sprintf("select * from users where username='%s' and filename='%s'", req.Username, filename)
+		sql := fmt.Sprintf("select * from access where username='%s' and filename='%s'and authorized_user='%s'",
+			req.Username, filename, req.AuthorizedUsername)
 		res, err := common.DoQuery(sql, db)
 		if err != nil {
 			log.Printf("查询数据库失败 %v", err)
@@ -164,8 +165,9 @@ func (s *dataServer) SaveSharedResult(ctx context.Context, req *protos.SaveShare
 			}, err
 		}
 		if res.Next() { //如果已存在
-			sql := fmt.Sprintf("update access set authorized_user='%s'and share_key='%s' "+
-				"where username='%s' and filename in '%s'", req.AuthorizedUsername, req.ShareKeys[i], req.Username, filename)
+			sql := fmt.Sprintf("update access set share_key='%s'where username='%s' and filename='%s'and authorized_user='%s'and share_key<>'%s'",
+				req.ShareKeys[i], req.Username, filename, req.AuthorizedUsername, req.ShareKeys[i])
+			fmt.Printf("***update***sql:" + sql + "\n")
 			_, err := common.DoExecTx(sql, db)
 			if err != nil {
 				log.Printf("更新数据库失败 %v", err)
@@ -174,7 +176,9 @@ func (s *dataServer) SaveSharedResult(ctx context.Context, req *protos.SaveShare
 				}, err
 			}
 		} else { //不存在
-			sql = fmt.Sprintf("insert into access values('%s','%s','%s','%s')", req.Username, filename, req.AuthorizedUsername, req.ShareKeys[i])
+			sql = fmt.Sprintf("insert into access values('%s','%s','%s','%s')",
+				req.Username, filename, req.AuthorizedUsername, req.ShareKeys[i])
+			fmt.Printf("***insert***sql:" + sql + "\n")
 			_, err := common.DoExecTx(sql, db)
 			if err != nil {
 				log.Printf("插入数据库失败 %v", err)
@@ -185,7 +189,7 @@ func (s *dataServer) SaveSharedResult(ctx context.Context, req *protos.SaveShare
 		}
 	}
 	return &protos.SaveSharedResultResponse{
-		ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+		ErrorMessage: protos.ErrorMessage_OK,
 	}, nil
 }
 
@@ -227,6 +231,7 @@ func (s *dataServer) GetSecondKey(ctx context.Context, req *protos.GetSecondKeyR
 			ranges += ","
 		}
 	}
+
 	sql = fmt.Sprintf("select filename,secondKey from metadata where username='%s' and filename in (%s)", req.Username, ranges)
 	res, err = datacommon.DoQuery(sql, db)
 	if err != nil {
@@ -243,7 +248,7 @@ func (s *dataServer) GetSecondKey(ctx context.Context, req *protos.GetSecondKeyR
 		res.Scan(&filename, &secondkey)
 		m[filename] = secondkey
 	}
-	log.Println(m)
+
 	serializedData, err := json.Marshal(m)
 	if err != nil {
 		log.Printf("序列化失败 %v", err)

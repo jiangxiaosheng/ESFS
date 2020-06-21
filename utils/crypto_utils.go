@@ -75,9 +75,9 @@ func GenerateRSAKey(bits int, dir, username string) error {
 公钥加密
 @params:sourceData 源数据
 		key 公钥
-@returns:公钥加密后的string
+@returns:公钥加密后的[]byte
 */
-func PublickeyEncrypt(sourceData []byte, key *rsa.PublicKey) ([]byte, error) {
+func PubKeyEncrypt(sourceData []byte, key *rsa.PublicKey) ([]byte, error) {
 	res, err := rsa.EncryptPKCS1v15(rand.Reader, key, sourceData)
 	if err != nil {
 		return nil, err

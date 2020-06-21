@@ -4,6 +4,7 @@ import (
 	"ESFS2.0/client/common"
 	"ESFS2.0/message/protos"
 	"context"
+	"errors"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -15,6 +16,7 @@ var _rememberRadioButton *walk.RadioButton
 
 var HasLogin bool
 var CurrentUser string
+var Privatekeypath string
 
 func init() {
 	HasLogin = false //*********是否已登录********
@@ -62,6 +64,7 @@ func GetLoginPage() []Widget {
 		},
 	}
 	return widget
+
 }
 
 func login() {
@@ -100,7 +103,20 @@ func login() {
 		common.ShowMsgBox("提示", "密码错误")
 	case protos.ErrorMessage_OK:
 		common.ShowMsgBox("提示", "登录成功")
-		CurrentUser = uname
 		HasLogin = true
+		CurrentUser = uname
+	}
+}
+
+func SelectPrivateKeyPath(mw *FileMainWindow) error {
+	dlg := new(walk.FileDialog)
+	dlg.Title = "请选择私钥的路径"
+	dlg.Filter = "Certificate File(*.pem)|*.pem"
+	if ok, err := dlg.ShowOpen(mw); !ok || err != nil {
+		Privatekeypath = ""
+		return errors.New("open path error")
+	} else {
+		Privatekeypath = dlg.FilePath
+		return nil
 	}
 }

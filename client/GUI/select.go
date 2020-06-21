@@ -46,6 +46,8 @@ func (m *FileModel) Value(row, col int) interface{} {
 		return item.Size
 	case 2:
 		return item.ModTime
+	case 3:
+		return item.Owner
 	}
 	panic("unexpected col")
 }
@@ -94,6 +96,8 @@ func (m *FileModel) Less(i, j int) bool {
 		return c(a.Size < b.Size)
 	case 2:
 		return c(a.ModTime.Before(b.ModTime))
+	case 3:
+		return c(a.Owner < b.Owner)
 	}
 
 	panic("unreachable")
@@ -162,13 +166,32 @@ func GetSelectPage() []Widget {
 				PushButton{
 					Text: "下载",
 					OnClicked: func() {
-						selectDownloadFile(mw)
+						if Privatekeypath == "" {
+
+						}
+						err := SelectPrivateKeyPath(mw)
+						bOk := IsPrivateKey(Privatekeypath)
+						if err != nil && bOk == true {
+							log.Println(err)
+							var tmp walk.Form
+							walk.MsgBox(tmp, "提示", "请选择正确的私钥", walk.MsgBoxIconInformation)
+						} else {
+							selectDownloadFile(mw)
+						}
 					},
 				},
 				PushButton{
 					Text: "上传",
 					OnClicked: func() {
-						OpenWindow()
+						err := SelectPrivateKeyPath(mw)
+						bOk := IsPrivateKey(Privatekeypath)
+						if err != nil && bOk == true {
+							log.Println(err)
+							var tmp walk.Form
+							walk.MsgBox(tmp, "提示", "请选择正确的私钥", walk.MsgBoxIconInformation)
+						} else {
+							OpenWindow()
+						}
 					},
 				},
 				PushButton{
@@ -217,6 +240,7 @@ func GetSelectPage() []Widget {
 						{Title: "日期", FormatFunc: func(t interface{}) string {
 							return fmt.Sprintf(t.(time.Time).Format("2006-01-02 15:04:05"))
 						}},
+						{Title: "拥有者"},
 					},
 					Model:           mw.model,
 					OnItemActivated: mw.tvItemActivated,
@@ -259,10 +283,23 @@ func selectDownloadFile(mw *FileMainWindow) {
 func download(mw *FileMainWindow, dir string) {
 	fileItems := mw.model.items
 	var filesToDownload []string
+	fileMap := make(map[string][]string)
 	for _, fileRecord := range fileItems {
 		if fileRecord.checked {
 			filesToDownload = append(filesToDownload, fileRecord.Name)
+			if fileRecord.Owner != CurrentUser {
+				if fileMap[fileRecord.Owner] == nil {
+					fileMap[fileRecord.Owner] = make([]string, 0)
+				}
+				fileMap[fileRecord.Owner] = append(fileMap[fileRecord.Owner], fileRecord.Name)
+			}
 		}
+	}
+	serializedFileMap, err := json.Marshal(fileMap)
+	if err != nil {
+		log.Printf("序列化fileMap失败 %v", err)
+		clicommon.ShowMsgBox("提示", "程序错误")
+		return
 	}
 
 	//1.使用grpc获取文件-二级密码map
@@ -276,6 +313,7 @@ func download(mw *FileMainWindow, dir string) {
 	defer cancel()
 	request := &protos.DownloadPrepareRequest{
 		Username: CurrentUser,
+		FileMap:  serializedFileMap,
 	}
 	response, err := c.DownloadPrepare(ctx, request)
 	if err != nil {
@@ -284,6 +322,7 @@ func download(mw *FileMainWindow, dir string) {
 		return
 	}
 	var m map[string]string
+	var accessMap map[string]map[string][]byte
 
 	err = json.Unmarshal(response.Content, &m)
 	if err != nil {
@@ -291,9 +330,21 @@ func download(mw *FileMainWindow, dir string) {
 		clicommon.ShowMsgBox("提示", "服务器错误")
 		return
 	}
+	err = json.Unmarshal(response.OtherFileMap, &accessMap)
+	if err != nil {
+		log.Printf("反序列化失败 %v", err.Error())
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+	for k, v := range accessMap {
+		fmt.Println(k)
+		for _, x := range v {
+			fmt.Print(x, " ")
+		}
+	}
 
 	//2.获取当前用户的私钥，用来后续解密文件
-	priKey := clicommon.GetUserPrivateKey()
+	priKey := clicommon.GetUserPrivateKey(Privatekeypath)
 	if priKey == nil {
 		log.Printf("读取私钥失败 %v", err.Error())
 		clicommon.ShowMsgBox("提示", "服务器错误")
@@ -448,5 +499,8 @@ func removeFiles(mw *FileMainWindow) {
 		mw.model = NewFileModel()
 		clicommon.ShowMsgBox("提示", "删除成功")
 	}()
+}
 
+func IsPrivateKey(keypath string) bool {
+	return true
 }

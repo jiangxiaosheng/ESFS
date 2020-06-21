@@ -1,10 +1,9 @@
 package tests
 
 import (
-	"ESFS2.0/utils"
 	"fmt"
 	"github.com/archivefile/zip"
-	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 )
@@ -15,12 +14,8 @@ func TestFormat(t *testing.T) {
 }
 
 func TestXJB(t *testing.T) {
-	b, err := utils.CompressToBytes("8.jpg")
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = ioutil.WriteFile("8.jpg.zip", b, 0644)
-	//_, _ = utils.CompressToFile("8.jpg", "8.jpg.zip")
+	s := []string{"1", "2"}
+	fmt.Println("(" + strings.Join(s, ",") + ")")
 }
 
 func TestZip(t *testing.T) {

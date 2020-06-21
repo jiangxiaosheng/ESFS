@@ -14,6 +14,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 )
 
 func fileSocketServer() {
@@ -219,6 +220,7 @@ func (s *dataServer) DownloadPrepare(ctx context.Context, req *protos.DownloadPr
 		return &protos.DownloadPrepareResponse{
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
 			Content:      nil,
+			OtherFileMap: nil,
 		}, err
 	}
 	sql := fmt.Sprintf("select filename,secondKey from metadata where username='%s'", req.Username)
@@ -228,6 +230,7 @@ func (s *dataServer) DownloadPrepare(ctx context.Context, req *protos.DownloadPr
 		return &protos.DownloadPrepareResponse{
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
 			Content:      nil,
+			OtherFileMap: nil,
 		}, err
 	}
 	var filename, key string
@@ -242,16 +245,74 @@ func (s *dataServer) DownloadPrepare(ctx context.Context, req *protos.DownloadPr
 		return &protos.DownloadPrepareResponse{
 			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
 			Content:      nil,
+			OtherFileMap: nil,
 		}, err
 	}
+
+	fileMap := make(map[string][]string)
+	err = json.Unmarshal(req.FileMap, &fileMap)
+	if err != nil {
+		log.Printf("反序列化FileMap失败 %v", err.Error())
+		return &protos.DownloadPrepareResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+			Content:      nil,
+			OtherFileMap: nil,
+		}, err
+	}
+
+	accessMap := make(map[string]map[string][]byte)
+	fileRange := make([]string, 0)
+
+	var shareKey []byte
+
+	//其他人，username是发起分享的用户名，files是分享给该用户的所有文件名
+	for username, files := range fileMap {
+		accessMap[username] = make(map[string][]byte)
+
+		for _, f := range files {
+			fileRange = append(fileRange, fmt.Sprintf("'%s'", f))
+		}
+		sqlFileRange := "(" + strings.Join(fileRange, ",") + ")"
+		sql := fmt.Sprintf("select filename,share_key from access where username='%s' and authorized_user='%s' and filename in %s", username, req.Username, sqlFileRange)
+		res, err := common.DoQuery(sql, db)
+		if err != nil {
+			log.Printf("查询access数据库失败 %v", err.Error())
+			return &protos.DownloadPrepareResponse{
+				ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+				Content:      nil,
+				OtherFileMap: nil,
+			}, err
+		}
+		if res.Next() {
+			res.Scan(&filename, &shareKey)
+			fmt.Println(shareKey)
+			accessMap[username][filename] = shareKey
+		}
+	}
+
+	serializedAccessMap, err := json.Marshal(accessMap)
+	if err != nil {
+		log.Printf("反序列化accessMap失败 %v", err.Error())
+		return &protos.DownloadPrepareResponse{
+			ErrorMessage: protos.ErrorMessage_SERVER_ERROR,
+			Content:      nil,
+			OtherFileMap: nil,
+		}, err
+	}
+
+	println(fileMap["memeshe"])
 
 	response := &protos.DownloadPrepareResponse{
 		ErrorMessage: protos.ErrorMessage_OK,
 		Content:      data,
+		OtherFileMap: serializedAccessMap,
 	}
 	return response, nil
 }
 
+/**
+@author js yyx
+*/
 func (s *dataServer) ListFiles(ctx context.Context, req *protos.ListFilesRequest) (*protos.ListFilesResponse, error) {
 	fileDir := path.Join(common.BaseDir, "dataserver", "data", req.Username)
 	files, err := ioutil.ReadDir(fileDir)
@@ -274,6 +335,7 @@ func (s *dataServer) ListFiles(ctx context.Context, req *protos.ListFilesRequest
 			Mode:    f.Mode(),
 			Size:    f.Size(),
 			ModTime: f.ModTime(),
+			Owner:   req.Username,
 		}
 		serializedData, err := json.Marshal(tmp)
 		if err != nil {
@@ -282,6 +344,57 @@ func (s *dataServer) ListFiles(ctx context.Context, req *protos.ListFilesRequest
 		}
 
 		filesArray = append(filesArray, serializedData)
+	}
+	/*增加对access表的查询*/
+	db, err := datacommon.GetDBConnection()
+	if err != nil {
+		log.Printf("建立数据库连接失败 %v", err.Error())
+		return &protos.ListFilesResponse{
+			Ok:       false,
+			FileInfo: nil,
+		}, err
+	}
+	sql := fmt.Sprintf("select username,filename from access where authorized_user='%s'", req.Username)
+	res, err := datacommon.DoQuery(sql, db)
+	if err != nil {
+		log.Printf("数据库查询失败 %v", err.Error())
+		return &protos.ListFilesResponse{
+			Ok:       false,
+			FileInfo: nil,
+		}, err
+	}
+	var OwnerUser, Filename string
+	for res.Next() {
+		res.Scan(&OwnerUser, &Filename)
+		ownerFileDir := path.Join(common.BaseDir, "dataserver", "data", OwnerUser)
+		ownerFiles, ownererr := ioutil.ReadDir(ownerFileDir)
+		if ownererr != nil {
+			return &protos.ListFilesResponse{
+				Ok:       false,
+				FileInfo: filesArray,
+			}, nil
+		}
+		for _, OwnerInfo := range ownerFiles {
+			if path.Ext(OwnerInfo.Name()) == ".sig" && string(OwnerInfo.Name()[0]) == "." {
+				continue
+			} else if OwnerInfo.Name() != Filename {
+				continue
+			} else {
+				tmp := &message.FileInfo{
+					Name:    OwnerInfo.Name(),
+					Mode:    OwnerInfo.Mode(),
+					Size:    OwnerInfo.Size(),
+					ModTime: OwnerInfo.ModTime(),
+					Owner:   OwnerUser,
+				}
+				serializedData, err := json.Marshal(tmp)
+				if err != nil {
+					log.Printf("反序列化文件信息失败 %v", err.Error())
+					continue
+				}
+				filesArray = append(filesArray, serializedData)
+			}
+		}
 	}
 
 	return &protos.ListFilesResponse{

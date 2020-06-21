@@ -132,7 +132,7 @@ func CreateRegisterWindow() {
 						ReadOnly: true,
 					},
 					PushButton{
-						Text: "选择公钥文件",
+						Text: "选择证书文件",
 						OnClicked: func() {
 							mw.chooseCert() //TODO:选择证书
 						},

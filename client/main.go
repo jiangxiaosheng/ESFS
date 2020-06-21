@@ -86,6 +86,7 @@ type LoginPage struct {
 func newLoginPage(parent walk.Container) (GUI.Page, error) {
 	p := new(LoginPage)
 	var widget []Widget
+
 	if GUI.HasLogin == false {
 		//未登录
 		widget = GUI.GetLoginPage()

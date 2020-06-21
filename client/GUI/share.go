@@ -21,6 +21,18 @@ type MyShareWindow struct {
 }
 
 func CreateShareWindow(father *FileMainWindow) {
+	fileItems := father.model.items
+	flag := false
+	for _, fileRecord := range fileItems {
+		if fileRecord.checked {
+			flag = true
+		}
+	}
+	if flag == false {
+		clicommon.ShowMsgBox("提示", "请选择需要分享的文件")
+		return
+	}
+
 	mw := &MyShareWindow{}
 	if err := (MainWindow{
 		AssignTo: &mw.MainWindow,
@@ -76,56 +88,100 @@ func share(father *FileMainWindow, mw *MyShareWindow) {
 			filesToShared = append(filesToShared, fileRecord.Name)
 		}
 	}
-	for _, i := range filesToShared {
-		fmt.Printf("file:" + i + "\n")
-	}
+
 	//1.获取文件名-二级密码映射
 	var SecondKeys map[string]string
 	SecondKeys, err = getSecondKeys(CurrentUser, filesToShared)
+	fmt.Println(filesToShared[0], len(SecondKeys))
 	if err != nil {
 		log.Println(err)
 		clicommon.ShowMsgBox("提示", "服务器错误")
 		return
 	}
-	for _, i := range SecondKeys {
-		fmt.Printf("SecondKeys:" + i + "\n")
-	}
-	fmt.Printf("11111")
-	//2.用私钥和这些二级密码分别生成多个会话密钥
-	var sharedKeys []string
-	var tmp []byte
-	privateKey := clicommon.GetUserPrivateKey()
 
-	for _, SecondKey := range SecondKeys {
-		tmp, err = utils.GenerateSessionKeyWithSecondKey(SecondKey, privateKey)
+	//2.用私钥和这些二级密码分别生成多个会话密钥
+	var sharedKeys [][]byte
+	privateKey := clicommon.GetUserPrivateKey(Privatekeypath)
+	i := 0
+	for filename, SecondKey := range SecondKeys {
+		filesToShared[i] = filename
+		i++
+		tmp, err := utils.GenerateSessionKeyWithSecondKey(SecondKey, privateKey)
 		if err != nil {
 			log.Println(err)
 			clicommon.ShowMsgBox("提示", "服务器错误")
 		}
-		sharedKeys = append(sharedKeys, string(tmp))
+		sharedKeys = append(sharedKeys, tmp)
 	}
-	////3.获取需要分享的用户的公钥，这个函数下面写好了
-	//var userPublicKey *rsa.PublicKey
-	//userPublicKey, _ = getUserPublicKey(mw.shareName.Text())
-	//
-	////4.用该公钥加密这些会话密钥
-	//var encryptedKeys []string
-	//for _, key := range sharedKeys {
-	//	tmp, err := utils.PublickeyEncrypt([]byte(key), userPublicKey)
-	//	if err != nil {
-	//		log.Println(err)
-	//		clicommon.ShowMsgBox("提示", "服务器错误")
-	//	}
-	//	encryptedKeys = append(encryptedKeys, string(tmp))
-	//}
+
+	//3.获取需要分享的用户的公钥，这个函数下面写好了
+	var userPublicKey *rsa.PublicKey
+	userPublicKey, _ = getUserPublicKey(mw.shareName.Text())
+	if userPublicKey == nil {
+		clicommon.ShowMsgBox("提示", "服务器错误")
+		return
+	}
+
+	//4.用该公钥加密这些会话密钥
+	var encryptedKeys [][]byte
+	for _, key := range sharedKeys {
+		tmp, err := utils.PubKeyEncrypt(key, userPublicKey)
+
+		if err != nil {
+			log.Println(err)
+			clicommon.ShowMsgBox("提示", "服务器错误")
+		}
+		//序列化
+		tmp, _ = json.Marshal(tmp)
+		encryptedKeys = append(encryptedKeys, tmp)
+	}
 
 	//5.加密结果存在access表中
-	//err = saveSharedResults(mw.shareName.Text(), filesToShared, CurrentUser, encryptedKeys)
-	//if err != nil {
-	//	return err
-	//}
-	//return nil
+	err = saveSharedResults(CurrentUser, filesToShared, mw.shareName.Text(), encryptedKeys)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	mw.MainWindow.Close()
+	return
 
+}
+
+/**
+@author ytw
+加密结果存在access表中
+*/
+func saveSharedResults(username string, filenames []string, authorizedUsername string, shareKeys [][]byte) error {
+	c, conn, err := clicommon.GetAuthenticationClient()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	request := &protos.SaveSharedResultRequest{
+		Username:           username,
+		Filenames:          filenames,
+		AuthorizedUsername: authorizedUsername,
+		ShareKeys:          shareKeys,
+	}
+
+	response, err := c.SaveSharedResult(ctx, request)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	switch response.ErrorMessage {
+	case protos.ErrorMessage_SERVER_ERROR:
+		return errors.New("server_error")
+	case protos.ErrorMessage_USER_NOT_EXISTS:
+		return errors.New("username_not_exist")
+	case protos.ErrorMessage_OK:
+		return nil
+	}
+	return nil
 }
 
 /**
@@ -209,8 +265,7 @@ func getUserPublicKey(username string) (*rsa.PublicKey, protos.ErrorMessage) {
 		return nil, response.ErrorMessage
 	case protos.ErrorMessage_OK:
 		//解析从CA得到的用户证书
-		cert := &utils.Certificate{}
-		err = json.Unmarshal(response.Content, cert)
+		cert, err := utils.ReadCertFromBytes(response.Content)
 		if err != nil {
 			return nil, response.ErrorMessage
 		}
